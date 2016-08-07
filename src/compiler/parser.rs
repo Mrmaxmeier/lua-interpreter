@@ -15,12 +15,13 @@ named!(pub integer<i64>,
 named!(pub identifier<String>,
     chain!(
         a: alpha ~
-        b: many0!(alphanumeric),
+        b: opt!(alphanumeric),
         || {
+            let mut s = String::from_utf8_lossy(a).into_owned();
             print!("a: {:?} b: {:?}\n", a, b);
-            let b = b.iter(|a|);
-            let mut s = String::from_utf8_lossy(b).into_owned();
-            s.insert(0, a[0] as char);
+            if let Some(b) = b {
+                s.push_str(str::from_utf8(b).unwrap());
+            }
             s
         }
     )
@@ -47,7 +48,8 @@ mod tests {
     #[test]
     fn parses_identifiers() {
         println!("{:?}", identifier(&b"abc"[..]));
-        println!("{:?}", identifier(&b"abc_42"[..]));
+        println!("{:?}", identifier(&b"abc42"[..]));
+        println!("{:?}", identifier(&b"_42_abc"[..]));
         println!("{:?}", identifier(&b"11elf"[..]));
         println!("{:?}", identifier(&b"a_b-c?d"[..]));
         unimplemented!();
