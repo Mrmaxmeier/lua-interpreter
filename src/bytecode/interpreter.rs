@@ -9,15 +9,16 @@ pub struct Interpreter {
     pc: usize,
 }
 
+/*
 impl Interpreter {
     pub fn new() -> Self {
-        unimplemented!()
-        /*Interpreter {
+        Interpreter {
             stack: Vec::new()
-        }*/
+        }
     }
 
     fn step() {
 
     }
 }
+*/

@@ -1,5 +1,4 @@
 use num::FromPrimitive;
-use bytecode::parser::*;
 // http://www.lua.org/source/5.3/lopcodes.h.html
 
 enum_from_primitive!{
@@ -78,6 +77,7 @@ named!(pub parse_instruction< Box<Instruction> >, map_res!(
     take!(4),
     |d: &[u8]| -> Result<Box<Instruction>, String> {
         let i = d[0]; // TODO: read instruction fields
+        println!("i: {}, A: {:?}, B: {:?}, C: {:?}", i, d[1], d[2], d[3]);
         println!("trying to convert {} into {:?}", i, Instruction::from_u8(i));
         match Instruction::from_u8(i) {
             Some(i) => Ok(box i),

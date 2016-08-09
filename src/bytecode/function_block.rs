@@ -9,18 +9,18 @@ use types::Type;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct FunctionBlock {
-    source_name: Option<String>,
-    lines: (usize, usize),
-    amount_upvalues: u8,
-    amount_parameters: u8,
+    pub source_name: Option<String>,
+    pub lines: (usize, usize),
+    pub amount_upvalues: u8,
+    pub amount_parameters: u8,
     // is_vararg: VarArgs,
-    stack_size: u8,
-    instructions: Vec<Box<Instruction>>,
-    constants: Vec<Box<Type>>,
+    pub stack_size: u8,
+    pub instructions: Vec<Box<Instruction>>,
+    pub constants: Vec<Box<Type>>,
 // DEBUG DATA
-    source_line_positions: Vec<()>,
-    locals: Vec<()>,
-    upvalues: Vec<()>,
+    pub source_line_positions: Vec<()>,
+    pub locals: Vec<()>,
+    pub upvalues: Vec<()>,
 }
 
 named!(pub parse_function<FunctionBlock>, chain!(
@@ -59,12 +59,17 @@ mod tests {
     use std::io::Cursor;
     use nom::{IResult, Needed};
     use types::Type;
+    use bytecode::header::parse_header;
+    use bytecode::instructions::Instruction;
 
     #[test]
     fn parses_assignment() {
-        let start = 29 + 5; // TODO: link to header bytes
-        let data = &include_bytes!("../../fixtures/assignment")[start..];
-        let result = parse_function(data);
+        let all = include_bytes!("../../fixtures/assignment");
+        let data = parse_header(all).unwrap().0;
+        let data = &data[1..]; // skip count of upvalues
+        assert_eq!(34, all.len() - data.len());
+
+        let result = parse_function(data).unwrap().1;
         let expected = FunctionBlock {
             source_name: Some("@assignment.lua".into()),
             lines: (0, 0),
@@ -72,15 +77,17 @@ mod tests {
             amount_parameters: 0,
         //  is_vararg: VarArgs.VARARG_DEFAULT,
             stack_size: 0,
-            instructions: Vec::new(),
+            instructions: vec![
+                box Instruction::LOADK,
+                box Instruction::RETURN,
+            ],
             constants: vec![box Type::String("zweiundvierzig".into())],
         // DEBUG DATA
             source_line_positions: Vec::new(),
             locals: Vec::new(),
             upvalues: Vec::new(),
         };
-        let remaining = &data[24..];
         println!("result: {:#?}\n", result);
-        assert_eq!(result, IResult::Done(remaining, expected));
+        assert_eq!(result, expected);
     }
 }

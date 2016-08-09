@@ -36,7 +36,7 @@ named!(pub parse_header<Header>, chain!(
     s_li: take!(1)      ~ // sizeof(lua_Integer)
     s_ln: take!(1)      ~ // sizeof(lua_Number)
     tag!(LUAC_INT)      ~
-    tag!(&[0, 0, 0, 0]) , // TODO: make sure to consume correct amount of bytes
+    tag!(LUAC_NUM)      ,
     || { Header {
         version: (v[0] >> 4, v[0] & 0xF),
         format_version: f[0],
@@ -56,14 +56,14 @@ mod tests {
     use nom::{IResult, Needed};
 
     #[test]
-    fn parses_header() {
-        let data = &include_bytes!("../../fixtures/assignment")[..32];
+    fn parses_assignment_header() {
+        let data = &include_bytes!("../../fixtures/assignment")[..40];
         let expected = Header::default();
 
-        let remaining = &data[29..];
+        let remaining = &data[33..];
 
         let result = parse_header(data);
-        println!("{:?}\n", result);
+        println!("{:#?}\n", result);
 
         assert_eq!(result, IResult::Done(remaining, expected));
     }

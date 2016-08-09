@@ -1,6 +1,4 @@
 use std::cmp::max;
-use types::Type;
-use nom;
 use nom::le_i32;
 
 pub const LUA_SIGNATURE: &'static [u8] = &[0x1B, b'L', b'u', b'a'];
