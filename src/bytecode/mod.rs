@@ -1,4 +1,12 @@
-// http://luaforge.net/docman/83/98/ANoFrillsIntroToLua51VMInstructions.pdf
 mod interpreter;
-mod opcodes;
+mod instructions;
 mod parser;
+mod bytecode;
+mod header;
+mod function_block;
+mod code;
+mod constants;
+mod protos;
+mod upvalues;
+mod debug;
+mod types;

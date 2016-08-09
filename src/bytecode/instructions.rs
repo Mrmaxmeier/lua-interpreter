@@ -1,5 +1,6 @@
 // http://www.lua.org/source/5.3/lopcodes.h.html
-pub enum Op {
+#[derive(Debug, Clone, PartialEq)]
+pub enum Instruction {
     /*-------------------------------------------------------------------
     name         args    description
     ---------------------------------------------------------------------*/
@@ -67,3 +68,10 @@ pub enum Op {
 
     EXTRAARG/*   Ax      extra (larger) argument for previous opcode     */
 }
+
+
+
+named!(pub parse_instruction< Box<Instruction> >, chain!(
+    take!(4),
+    || { Box::new(Instruction::RETURN) /* TODO */ }
+));
