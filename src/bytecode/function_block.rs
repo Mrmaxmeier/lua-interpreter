@@ -5,6 +5,7 @@ use bytecode::upvalues::parse_upvalues;
 use bytecode::protos::parse_protos;
 use bytecode::debug::parse_debug;
 use bytecode::instructions::Instruction;
+use types::Type;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct FunctionBlock {
@@ -15,7 +16,7 @@ pub struct FunctionBlock {
     // is_vararg: VarArgs,
     stack_size: u8,
     instructions: Vec<Box<Instruction>>,
-    constants: Vec<()>,
+    constants: Vec<Box<Type>>,
 // DEBUG DATA
     source_line_positions: Vec<()>,
     locals: Vec<()>,
@@ -43,7 +44,7 @@ named!(pub parse_function<FunctionBlock>, chain!(
         // is_vararg: VARARG_DEFAULT,
         stack_size: maxstacksize[0],
         instructions: code,
-        constants: Vec::new(),
+        constants: constants,
     // DEBUG DATA
         source_line_positions: Vec::new(),
         locals: Vec::new(),
@@ -57,10 +58,11 @@ mod tests {
     use super::*;
     use std::io::Cursor;
     use nom::{IResult, Needed};
+    use types::Type;
 
     #[test]
     fn parses_assignment() {
-        let start = 29 + 5; // FIXME
+        let start = 29 + 5; // TODO: link to header bytes
         let data = &include_bytes!("../../fixtures/assignment")[start..];
         let result = parse_function(data);
         let expected = FunctionBlock {
@@ -71,7 +73,7 @@ mod tests {
         //  is_vararg: VarArgs.VARARG_DEFAULT,
             stack_size: 0,
             instructions: Vec::new(),
-            constants: Vec::new(),
+            constants: vec![box Type::String("zweiundvierzig".into())],
         // DEBUG DATA
             source_line_positions: Vec::new(),
             locals: Vec::new(),

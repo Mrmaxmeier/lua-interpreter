@@ -36,7 +36,7 @@ named!(pub parse_header<Header>, chain!(
     s_li: take!(1)      ~ // sizeof(lua_Integer)
     s_ln: take!(1)      ~ // sizeof(lua_Number)
     tag!(LUAC_INT)      ~
-    tag!(&[0, 0, 0, 0]) , // FIXME: count bytes
+    tag!(&[0, 0, 0, 0]) , // TODO: make sure to consume correct amount of bytes
     || { Header {
         version: (v[0] >> 4, v[0] & 0xF),
         format_version: f[0],

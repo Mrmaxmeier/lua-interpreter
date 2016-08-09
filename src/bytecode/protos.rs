@@ -2,7 +2,7 @@ use bytecode::parser::*;
 
 named!(pub parse_protos<()>, chain!(
     amount: parse_int,
-    || {(/* TODO */)}
+    || {(/* TODO: implement parse_protos */)}
 ));
 
 
