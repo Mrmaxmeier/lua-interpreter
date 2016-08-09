@@ -1,10 +1,24 @@
 use bytecode::header::{Header, parse_header};
-use bytecode::function_block::{parse_function};
+use bytecode::function_block::{FunctionBlock, parse_function};
+use std::convert::TryFrom;
+use nom::IResult;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Bytecode {
-    header: Header,
-    upvalues: u8,
+    pub header: Header,
+    pub upvalues: u8,
+    pub func: FunctionBlock,
+}
+
+impl<'a> TryFrom<&'a [u8]> for Bytecode {
+    type Err = String;
+    fn try_from(data: &'a [u8]) -> Result<Bytecode, String> {
+        match parse_bytecode(data) {
+            IResult::Done(_, bytecode) => Ok(bytecode),
+            IResult::Error(e) => Err(format!("error: {:?}", e)),
+            IResult::Incomplete(n) => Err(format!("needed: {:?}", n))
+        }
+    }
 }
 
 named!(pub parse_bytecode<Bytecode>, chain!(
@@ -14,6 +28,7 @@ named!(pub parse_bytecode<Bytecode>, chain!(
     || { Bytecode {
         header: h,
         upvalues: upvalues[0],
+        func: func,
     } }
 ));
 
@@ -44,7 +59,6 @@ mod tests {
         let expected_function_block = FunctionBlock {
             source_name: Some("@call.lua".into()),
             lines: (0, 0),
-            amount_upvalues: 1,
             amount_parameters: 0,
         //  is_vararg: VarArgs.VARARG_DEFAULT,
             stack_size: 0,
@@ -57,7 +71,8 @@ mod tests {
         };
         let expected = Bytecode {
             header: expected_header,
-            upvalues: 0
+            upvalues: 0,
+            func: expected_function_block,
         };
 
 
@@ -74,7 +89,6 @@ mod tests {
         let expected_function_block = FunctionBlock {
             source_name: Some("@block.lua".into()),
             lines: (0, 0),
-            amount_upvalues: 1,
             amount_parameters: 0,
         //  is_vararg: VarArgs.VARARG_DEFAULT,
             stack_size: 0,
@@ -87,7 +101,8 @@ mod tests {
         };
         let expected = Bytecode {
             header: expected_header,
-            upvalues: 0
+            upvalues: 0,
+            func: expected_function_block,
         };
 
 

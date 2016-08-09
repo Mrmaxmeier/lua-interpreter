@@ -11,7 +11,6 @@ use types::Type;
 pub struct FunctionBlock {
     pub source_name: Option<String>,
     pub lines: (usize, usize),
-    pub amount_upvalues: u8,
     pub amount_parameters: u8,
     // is_vararg: VarArgs,
     pub stack_size: u8,
@@ -39,7 +38,6 @@ named!(pub parse_function<FunctionBlock>, chain!(
         source_name: source,
         lines: (line_s as usize, line_e as usize),
 
-        amount_upvalues: 0,
         amount_parameters: numparams[0],
         // is_vararg: VARARG_DEFAULT,
         stack_size: maxstacksize[0],
@@ -73,10 +71,9 @@ mod tests {
         let expected = FunctionBlock {
             source_name: Some("@assignment.lua".into()),
             lines: (0, 0),
-            amount_upvalues: 1,
             amount_parameters: 0,
         //  is_vararg: VarArgs.VARARG_DEFAULT,
-            stack_size: 0,
+            stack_size: 2,
             instructions: vec![
                 box Instruction::LOADK,
                 box Instruction::RETURN,
