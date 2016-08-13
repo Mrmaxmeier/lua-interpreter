@@ -3,7 +3,7 @@ use bytecode::code::parse_code;
 use bytecode::constants::parse_constants;
 use bytecode::upvalues::parse_upvalues;
 use bytecode::protos::parse_protos;
-use bytecode::debug::parse_debug;
+use bytecode::debug::{Debug, parse_debug};
 use bytecode::instructions::Instruction;
 use types::Type;
 
@@ -17,18 +17,18 @@ pub struct FunctionBlock {
     pub instructions: Vec<Box<Instruction>>,
     pub constants: Vec<Box<Type>>,
 // DEBUG DATA
-    pub source_line_positions: Vec<()>,
-    pub locals: Vec<()>,
-    pub upvalues: Vec<()>,
+    pub protos: (),
+    pub upvalues: (),
+    pub debug: Debug
 }
 
 named!(pub parse_function<FunctionBlock>, chain!(
     source: parse_string       ~
     line_s: parse_int          ~
     line_e: parse_int          ~
-    numparams: take!(1)       ~
-    is_vararg: take!(1)       ~
-    maxstacksize: take!(1)    ~
+    numparams: take!(1)        ~
+    is_vararg: take!(1)        ~
+    maxstacksize: take!(1)     ~
     code: parse_code           ~
     constants: parse_constants ~
     upvalues: parse_upvalues   ~
@@ -44,9 +44,9 @@ named!(pub parse_function<FunctionBlock>, chain!(
         instructions: code,
         constants: constants,
     // DEBUG DATA
-        source_line_positions: Vec::new(),
-        locals: Vec::new(),
-        upvalues: Vec::new(),
+        protos: protos,
+        upvalues: upvalues,
+        debug: debug,
     } }
 ));
 
@@ -59,6 +59,7 @@ mod tests {
     use types::Type;
     use bytecode::header::parse_header;
     use bytecode::instructions::Instruction;
+    use bytecode::debug::Debug;
 
     #[test]
     fn parses_assignment() {
@@ -80,9 +81,9 @@ mod tests {
             ],
             constants: vec![box Type::String("zweiundvierzig".into())],
         // DEBUG DATA
-            source_line_positions: Vec::new(),
-            locals: Vec::new(),
-            upvalues: Vec::new(),
+            protos: (),
+            upvalues: (),
+            debug: Debug::default()
         };
         println!("result: {:#?}\n", result);
         assert_eq!(result, expected);

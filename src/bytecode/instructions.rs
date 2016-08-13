@@ -1,6 +1,29 @@
 use num::FromPrimitive;
 // http://www.lua.org/source/5.3/lopcodes.h.html
 
+trait Format {
+     fn load(&[u8]) -> Self;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct A_B {
+    a: u8,
+}
+
+impl Format for A_B {
+   fn load(data: &[u8]) -> Self {
+       A_B {
+           a: 0
+       }
+   }
+}
+
+#[derive(Debug)]
+enum Test {
+    MOVE(A_B),
+    Variant2,
+}
+
 enum_from_primitive!{
     #[derive(Debug, Clone, PartialEq)]
     pub enum Instruction {

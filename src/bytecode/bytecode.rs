@@ -37,6 +37,7 @@ mod tests {
     use super::*;
     use bytecode::header::Header;
     use bytecode::function_block::FunctionBlock;
+    use bytecode::debug::Debug;
     use types::Type;
     use std::io::Cursor;
     use nom::{IResult, Needed};
@@ -65,9 +66,9 @@ mod tests {
             instructions: Vec::new(),
             constants: vec![box Type::String("value".into())],
         // DEBUG DATA
-            source_line_positions: Vec::new(),
-            locals: Vec::new(),
-            upvalues: Vec::new(),
+            protos: (),
+            upvalues: (),
+            debug: Debug::default()
         };
         let expected = Bytecode {
             header: expected_header,
@@ -95,9 +96,9 @@ mod tests {
             instructions: Vec::new(),
             constants: vec![box Type::String("value".into())],
         // DEBUG DATA
-            source_line_positions: Vec::new(),
-            locals: Vec::new(),
-            upvalues: Vec::new(),
+            protos: (),
+            upvalues: (),
+            debug: Debug::default()
         };
         let expected = Bytecode {
             header: expected_header,
