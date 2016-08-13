@@ -55,25 +55,16 @@ impl Parsable for Header {
 mod tests {
     use super::*;
     use std::io::Cursor;
+    use bytecode::parser::Parsable;
 
     #[test]
     fn parses_assignment_header() {
         let data = &include_bytes!("../../fixtures/assignment")[..40];
         let expected = Header::default();
 
-        let remaining = &data[33..];
-
-        let result = parse_header(data);
+        let result = Header::parse(&mut Cursor::new(data.to_vec()));
         println!("{:#?}\n", result);
 
-        assert_eq!(result, IResult::Done(remaining, expected));
-    }
-
-
-    #[test]
-    fn header_incomplete() {
-        let data = &include_bytes!("../../fixtures/assignment")[..24];
-        let result = parse_header(data);
-        assert!(result.is_incomplete());
+        assert_eq!(result, expected);
     }
 }

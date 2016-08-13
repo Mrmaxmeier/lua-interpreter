@@ -27,7 +27,7 @@ impl Parsable for FunctionBlock {
         let source_name = r.parse_lua_string();
         let lines = (Integer::parse(r) as usize, Integer::parse(r) as usize);
         let params = u8::parse(r);
-        r.assert_byte(0x00); // is_vararg
+        r.assert_byte(0b10); // is_vararg
         FunctionBlock {
             source_name: source_name,
             lines: lines,
@@ -51,15 +51,17 @@ mod tests {
     use bytecode::header::Header;
     use bytecode::instructions::Instruction;
     use bytecode::debug::Debug;
+    use bytecode::parser::{Parsable, ReadExt};
 
     #[test]
     fn parses_assignment() {
         let all = include_bytes!("../../fixtures/assignment");
-        let data = parse_header(all).unwrap().0;
-        let data = &data[1..]; // skip count of upvalues
-        assert_eq!(34, all.len() - data.len());
+        let mut reader = Cursor::new(all.to_vec());
+        Header::parse(&mut reader);
+        reader.read_byte(); // skip count of upvalues
+        assert_eq!(34, reader.position());
 
-        let result = parse_function(data).unwrap().1;
+        let result = FunctionBlock::parse(&mut reader);
         let expected = FunctionBlock {
             source_name: Some("@assignment.lua".into()),
             lines: (0, 0),

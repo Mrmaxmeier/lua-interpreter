@@ -1,8 +1,7 @@
 use bytecode::header::Header;
 use bytecode::function_block::FunctionBlock;
-use bytecode::parser::{Parsable, Read, ReadExt, ReadBytesExt};
+use bytecode::parser::*;
 use std::convert::TryFrom;
-use std::io;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Bytecode {
@@ -36,11 +35,12 @@ mod tests {
     use bytecode::debug::Debug;
     use types::Type;
     use std::io::Cursor;
+    use bytecode::parser::Parsable;
 
     #[test]
     fn parses_assignment() {
         let data = include_bytes!("../../fixtures/assignment");
-        let result = parse_bytecode(data);
+        let result = Bytecode::parse(&mut Cursor::new(data.to_vec()));
         println!("result: {:#?}\n", result);
         assert!(false);
     }
@@ -50,7 +50,7 @@ mod tests {
     #[test]
     fn parses_call() {
         let data = include_bytes!("../../fixtures/call");
-        let result = parse_bytecode(data);
+        let result = Bytecode::parse(&mut Cursor::new(data.to_vec()));
         let expected_header = Header::default();
         let expected_function_block = FunctionBlock {
             source_name: Some("@call.lua".into()),
@@ -72,15 +72,14 @@ mod tests {
         };
 
 
-        let remaining: &[u8] = &[];
         println!("result: {:#?}\n", result);
-        assert_eq!(result, IResult::Done(remaining, expected));
+        assert_eq!(result, expected);
     }
 
     #[test]
     fn parses_block() {
         let data = include_bytes!("../../fixtures/block");
-        let result = parse_bytecode(data);
+        let result = Bytecode::parse(&mut Cursor::new(data.to_vec()));
         let expected_header = Header::default();
         let expected_function_block = FunctionBlock {
             source_name: Some("@block.lua".into()),
@@ -102,8 +101,7 @@ mod tests {
         };
 
 
-        let remaining: &[u8] = &[];
         println!("result: {:#?}\n", result);
-        assert_eq!(result, IResult::Done(remaining, expected));
+        assert_eq!(result, expected);
     }
 }
