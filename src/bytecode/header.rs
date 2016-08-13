@@ -25,35 +25,36 @@ impl Default for Header {
     }
 }
 
-named!(pub parse_header<Header>, chain!(
-    tag!(LUA_SIGNATURE) ~
-    v: tag!(&[0x53])    ~ // VERSION
-    f: tag!(&[0x00])    ~ // FORMAT VERSION
-    tag!(LUAC_DATA)     ~
-    s_i: take!(1)       ~ // sizeof(int)
-    s_st: take!(1)      ~ // sizeof(size_t)
-    s_op: take!(1)      ~ // sizeof(Instruction)
-    s_li: take!(1)      ~ // sizeof(lua_Integer)
-    s_ln: take!(1)      ~ // sizeof(lua_Number)
-    tag!(LUAC_INT)      ~
-    tag!(LUAC_NUM)      ,
-    || { Header {
-        version: (v[0] >> 4, v[0] & 0xF),
-        format_version: f[0],
-        size_of_int: s_i[0],
-        size_of_size_t: s_st[0],
-        size_of_instruction: s_op[0],
-        size_of_integer: s_li[0],
-        size_of_number: s_ln[0],
-    } }
-));
+impl Parsable for Header {
+    fn parse<R: Read + Sized>(r: &mut R) -> Self {
+        let h = Header::default();
+
+        r.assert_bytes(LUA_SIGNATURE);
+
+        let (v_major, v_minor) = h.version;
+        r.assert_byte(v_major << 4 | v_minor);
+        r.assert_byte(h.format_version);
+
+        r.assert_bytes(LUAC_DATA);
+        
+        r.assert_byte(h.size_of_int);
+        r.assert_byte(h.size_of_size_t);
+        r.assert_byte(h.size_of_instruction);
+        r.assert_byte(h.size_of_integer);
+        r.assert_byte(h.size_of_number);
+
+        r.assert_bytes(LUAC_INT);
+        r.assert_bytes(LUAC_NUM);
+
+        h
+    }
+}
 
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::io::Cursor;
-    use nom::{IResult, Needed};
 
     #[test]
     fn parses_assignment_header() {

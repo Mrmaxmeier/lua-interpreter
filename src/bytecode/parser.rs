@@ -1,5 +1,8 @@
 use std::cmp::max;
-use nom::le_i32;
+pub use std::io;
+pub use std::io::Read;
+use byteorder;
+pub use byteorder::ReadBytesExt;
 
 pub const LUA_SIGNATURE: &'static [u8] = &[0x1B, b'L', b'u', b'a'];
 pub const LUAC_DATA: &'static [u8] = &[0x19, 0x93, b'\r', b'\n', 0x1a, b'\n'];
@@ -13,32 +16,70 @@ pub const LUAC_NUM: &'static [u8] = &[
 ]; 
 
 
+pub trait Parsable: Sized {
+    fn parse<R: Read + Sized>(&mut R) -> Self;
+}
 
-bitflags! {
-    pub flags VarArgs: u8 {
-        const VARARG_HASARG   = 0b0001,
-        const VARARG_ISVARARG = 0b0010,
-        const VARARG_NEEDSARG = 0b0100,
-        const VARARG_DEFAULT  = VARARG_HASARG.bits
-                              | VARARG_ISVARARG.bits
-                              | VARARG_NEEDSARG.bits,
+impl Parsable for String {
+    fn parse<R: Read + Sized>(r: &mut R) -> Self {
+        r.parse_lua_string().unwrap()
     }
 }
 
-
-named!(pub parse_string< Option<String> >, chain!(
-    len: alt!(
-        chain!(tag!(&[0xFF]) ~ l: call!(le_i32), {|| l as u32}) |
-        take!(1) => {|v: &[u8]| v[0] as u32}
-    ) ~
-    data: take!(max(1, len) - 1),
-    || {
-        if len > 0 {
-            Some(String::from_utf8_lossy(data).into_owned())
-        } else {
-            None
-        }
+impl Parsable for u8 {
+    fn parse<R: Read + Sized>(r: &mut R) -> Self {
+        let mut buf = [0u8];
+        r.read_exact(&mut buf).unwrap();
+        buf[0]
     }
-));
+}
 
-named!(pub parse_int<i32>, call!(le_i32));
+pub type Integer = i32;
+
+impl Parsable for Integer {
+    fn parse<R: Read + Sized>(r: &mut R) -> Self {
+        r.read_i32::<byteorder::LittleEndian>().unwrap()
+    }
+}
+
+pub trait ReadExt: Read + Sized {
+    fn assert_byte(&mut self, byte: u8) {
+        let read = u8::parse(self);
+        assert_eq!(read, byte);
+    }
+
+
+    fn assert_bytes(&mut self, bytes: &[u8]) {
+        let mut read = vec![0u8; bytes.len()];
+        self.read_exact(&mut read).unwrap();
+        assert_eq!(read, bytes);
+    }
+
+    fn read_byte(&mut self) -> u8 {
+        let mut buf = [0u8];
+        self.read_exact(&mut buf).unwrap();
+        buf[0]
+    }
+
+    fn read_bytes(&mut self, amount: usize) -> Vec<u8> {
+        let mut buf = vec![0u8; amount];
+        self.read_exact(&mut buf).unwrap();
+        buf
+    }
+
+    fn parse_lua_string(&mut self) -> Option<String> {
+        let len = match self.read_byte() {
+            0x00 => return None,
+            0xFF => {
+                Integer::parse(self) as usize
+            },
+            byte => {
+                byte as usize
+            }
+        };
+        let data = self.read_bytes(len);
+        Some(String::from_utf8_lossy(&data).into_owned())
+    }
+}
+
+impl<R: Read + Sized> ReadExt for R {}

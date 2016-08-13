@@ -1,7 +1,8 @@
-use bytecode::header::{Header, parse_header};
-use bytecode::function_block::{FunctionBlock, parse_function};
+use bytecode::header::Header;
+use bytecode::function_block::FunctionBlock;
+use bytecode::parser::{Parsable, Read, ReadExt, ReadBytesExt};
 use std::convert::TryFrom;
-use nom::IResult;
+use std::io;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Bytecode {
@@ -10,27 +11,22 @@ pub struct Bytecode {
     pub func: FunctionBlock,
 }
 
-impl<'a> TryFrom<&'a [u8]> for Bytecode {
-    type Err = String;
-    fn try_from(data: &'a [u8]) -> Result<Bytecode, String> {
-        match parse_bytecode(data) {
-            IResult::Done(_, bytecode) => Ok(bytecode),
-            IResult::Error(e) => Err(format!("error: {:?}", e)),
-            IResult::Incomplete(n) => Err(format!("needed: {:?}", n))
+impl Parsable for Bytecode {
+    fn parse<R: Read + Sized>(r: &mut R) -> Self {
+        Bytecode {
+            header: Header::parse(r),
+            upvalues: u8::parse(r),
+            func: FunctionBlock::parse(r),
         }
     }
 }
 
-named!(pub parse_bytecode<Bytecode>, chain!(
-    h: parse_header     ~
-    upvalues: take!(1)  ~
-    func: parse_function,
-    || { Bytecode {
-        header: h,
-        upvalues: upvalues[0],
-        func: func,
-    } }
-));
+impl<'a> TryFrom<&'a [u8]> for Bytecode {
+    type Err = String;
+    fn try_from(data: &'a [u8]) -> Result<Bytecode, String> {
+        unimplemented!()
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -40,7 +36,6 @@ mod tests {
     use bytecode::debug::Debug;
     use types::Type;
     use std::io::Cursor;
-    use nom::{IResult, Needed};
 
     #[test]
     fn parses_assignment() {

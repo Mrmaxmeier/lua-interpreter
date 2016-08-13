@@ -1,8 +1,16 @@
 use bytecode::parser::*;
-use bytecode::instructions::{Instruction, parse_instruction};
+use bytecode::instructions::Instruction;
 
 pub type Code = Vec<Box<Instruction>>;
 
+impl Parsable for Code {
+    fn parse<R: Read + Sized>(r: &mut R) -> Self {
+        let size = Integer::parse(r);
+        unimplemented!()
+    }
+}
+
+/*
 named!(pub parse_code<Code>, chain!(
     size: parse_int ~
     instructions: count!(call!(
@@ -10,17 +18,5 @@ named!(pub parse_code<Code>, chain!(
     ), size as usize),
     || { instructions }
 ));
-
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::io::Cursor;
-    use nom::{IResult, Needed};
-
-    #[ignore]
-    #[test]
-    fn parses_assignment() {
-        unimplemented!()
-    }
-}
+TODO: reimpl parse_ocde
+*/

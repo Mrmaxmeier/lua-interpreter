@@ -7,6 +7,17 @@ pub struct Debug {
     pub upvalues: (),
 }
 
+impl Parsable for Debug {
+    fn parse<R: Read + Sized>(r: &mut R) -> Self {
+        Debug {
+            line_info: (),
+            locals: (),
+            upvalues: (),
+        }
+    }
+}
+
+/*
 named!(pub parse_debug<Debug>, chain!(
     n_lineinfo: parse_int ~
     lineinfo: count!(take!(1), n_lineinfo as usize),
@@ -16,3 +27,5 @@ named!(pub parse_debug<Debug>, chain!(
         upvalues: (),
     }}
 ));
+TODO: reimpl parse_debug
+*/

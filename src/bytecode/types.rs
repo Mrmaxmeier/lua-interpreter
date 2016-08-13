@@ -1,7 +1,7 @@
 use bytecode::parser::*;
 use types::Type;
 
-
+/*
 named!(pub parse_type< Box<Type> >, alt!(
     tag!(&[0]) => { |_| box Type::Nil } | // LUA_TNIL
     tag!(&[1, 0]) => { |_| box Type::Boolean(false) } | // LUA_TBOOLEAN
@@ -21,3 +21,5 @@ named!(pub parse_type< Box<Type> >, alt!(
     tag!(&[7]) => { |_| panic!("LUA_TUSERADTA is not yet implemented") } | // LUA_TUSERADTA
     tag!(&[8]) => { |_| panic!("LUA_TTHREAD is not yet implemented") } // LUA_TTHREAD
 ));
+TODO: reimpl parse_type
+*/

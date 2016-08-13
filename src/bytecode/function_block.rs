@@ -1,9 +1,9 @@
 use bytecode::parser::*;
-use bytecode::code::parse_code;
-use bytecode::constants::parse_constants;
-use bytecode::upvalues::parse_upvalues;
-use bytecode::protos::parse_protos;
-use bytecode::debug::{Debug, parse_debug};
+use bytecode::code::Code;
+use bytecode::constants::Constants;
+use bytecode::upvalues::Upvalues;
+use bytecode::protos::Protos;
+use bytecode::debug::Debug;
 use bytecode::instructions::Instruction;
 use types::Type;
 
@@ -22,42 +22,33 @@ pub struct FunctionBlock {
     pub debug: Debug
 }
 
-named!(pub parse_function<FunctionBlock>, chain!(
-    source: parse_string       ~
-    line_s: parse_int          ~
-    line_e: parse_int          ~
-    numparams: take!(1)        ~
-    is_vararg: take!(1)        ~
-    maxstacksize: take!(1)     ~
-    code: parse_code           ~
-    constants: parse_constants ~
-    upvalues: parse_upvalues   ~
-    protos: parse_protos       ~
-    debug: parse_debug         ,
-    || { FunctionBlock {
-        source_name: source,
-        lines: (line_s as usize, line_e as usize),
-
-        amount_parameters: numparams[0],
-        // is_vararg: VARARG_DEFAULT,
-        stack_size: maxstacksize[0],
-        instructions: code,
-        constants: constants,
-    // DEBUG DATA
-        protos: protos,
-        upvalues: upvalues,
-        debug: debug,
-    } }
-));
-
+impl Parsable for FunctionBlock {
+    fn parse<R: Read + Sized>(r: &mut R) -> Self {
+        let source_name = r.parse_lua_string();
+        let lines = (Integer::parse(r) as usize, Integer::parse(r) as usize);
+        let params = u8::parse(r);
+        r.assert_byte(0x00); // is_vararg
+        FunctionBlock {
+            source_name: source_name,
+            lines: lines,
+            amount_parameters: params,
+            stack_size: u8::parse(r),
+            instructions: Code::parse(r),
+            constants: Constants::parse(r),
+        // DEBUG DATA
+            upvalues: Upvalues::parse(r),
+            protos: Protos::parse(r),
+            debug: Debug::parse(r)
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::io::Cursor;
-    use nom::{IResult, Needed};
     use types::Type;
-    use bytecode::header::parse_header;
+    use bytecode::header::Header;
     use bytecode::instructions::Instruction;
     use bytecode::debug::Debug;
 
