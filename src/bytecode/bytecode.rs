@@ -40,7 +40,6 @@ mod tests {
     }
 
 
-    #[ignore]
     #[test]
     fn parses_call() {
         let data = include_bytes!("../../fixtures/call");

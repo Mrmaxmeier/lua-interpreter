@@ -13,6 +13,8 @@ pub trait TInstruction: Sized {
 pub enum Instruction {
     MOVE(Move),
     LOADK(LoadK),
+    GETTABUP(GetTabUp),
+    CALL(Call),
     RETURN(Return),
 }
 
@@ -25,7 +27,11 @@ impl Parsable for Instruction {
         match opcode {
             00 => Instruction::MOVE(Move::load(data)),
             01 => Instruction::LOADK(LoadK::load(data)),
-            // TODO: ...
+            // TODO: 2 - 5
+            06 => Instruction::GETTABUP(GetTabUp::load(data)),
+            // TODO: 7 - 37
+            36 => Instruction::CALL(Call::load(data)),
+            // TODO: 37 TAILCALL
             38 => Instruction::RETURN(Return::load(data)),
             // TODO: ...
             invalid => panic!("invalid opcode: {:?}, instruction: {:?}", invalid, data)
@@ -46,6 +52,14 @@ fn parse_A_Bx(d: u32) -> (Reg, Reg) {
     let a = d >> 6;
     let b = d >> (6 + 8);
     (a as Reg, b as Reg)
+}
+
+#[allow(non_snake_case)]
+fn parse_A_B_C(d: u32) -> (Reg, Reg, Reg) {
+    let a = (d >> 6) & 0xFF;
+    let b = (d >> (6 + 8)) & 0xFF;
+    let c = (d >> (6 + 8 * 2)) & 0xFF;
+    (a as Reg, b as Reg, c as Reg)
 }
 
 
@@ -148,7 +162,40 @@ impl TInstruction for LoadK {
     }
 }
 
-// 37: RETURN   A B   return R(A), ... ,R(A+B-2)
+// 06: GETTABUP   A B C   R(A) := UpValue[B][RK(C)]
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct GetTabUp { pub a: Reg, pub b: Reg, pub c: Reg }
+
+impl TInstruction for GetTabUp {
+    fn step(&self, _: &mut Interpreter) {}
+    fn load(d: u32) -> Self {
+        let (a, b, c) = parse_A_B_C(d);
+        GetTabUp {
+            a: a,
+            b: b,
+            c: c,
+        }
+    }
+}
+
+
+// 36: CALL     A B C   R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1))
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Call { pub a: Reg, pub b: Reg, pub c: Reg }
+
+impl TInstruction for Call {
+    fn step(&self, _: &mut Interpreter) {}
+    fn load(d: u32) -> Self {
+        let (a, b, c) = parse_A_B_C(d);
+        Call {
+            a: a,
+            b: b,
+            c: c,
+        }
+    }
+}
+
+// 38: RETURN   A B     return R(A), ... ,R(A+B-2)
 // if (B == 0) then return up to 'top'.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Return { pub a: Reg, pub b: Reg }
