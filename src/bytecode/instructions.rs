@@ -3,26 +3,10 @@ use bytecode::parser::*;
 use bytecode::interpreter::Interpreter;
 use byteorder;
 
-#[allow(non_snake_case)]
-fn parse_A_B(d: u32) -> (Reg, Reg) {
-    // TODO!
-    let a = d >> 6;
-    let b = d >> (6 + 8);
-    (a as Reg, b as Reg)
-}
-
-#[allow(non_snake_case)]
-fn parse_A_Bx(d: u32) -> (Reg, Reg) {
-    // TODO!
-    (d as Reg, d as Reg)
-}
-
 pub trait TInstruction: Sized {
     fn step(&self, &mut Interpreter);
     fn load(u32) -> Self;
 }
-
-
 
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -35,9 +19,9 @@ pub enum Instruction {
 
 impl Parsable for Instruction {
     fn parse<R: Read + Sized>(r: &mut R) -> Self {
-        let data = r.read_u32::<byteorder::BigEndian>().unwrap();
-        let opcode = data & 0b111111;
-        println!("data: {:?}, opcode: {:?}", data, opcode);
+        let data = r.read_u32::<byteorder::LittleEndian>().unwrap();
+        let opcode = data & 0b00111111;
+        println!("opcode: {:?}\tdata: {:#0b}", opcode, data);
         match opcode {
             00 => Instruction::MOVE(Move::load(data)),
             01 => Instruction::LOADK(LoadK::load(data)),
@@ -49,6 +33,20 @@ impl Parsable for Instruction {
     }
 }
 
+
+#[allow(non_snake_case)]
+fn parse_A_B(d: u32) -> (Reg, Reg) {
+    let a = (d >> 6) & 0xFF;
+    let b = (d >> (6 + 8)) & 0xFF;
+    (a as Reg, b as Reg)
+}
+
+#[allow(non_snake_case)]
+fn parse_A_Bx(d: u32) -> (Reg, Reg) {
+    let a = d >> 6;
+    let b = d >> (6 + 8);
+    (a as Reg, b as Reg)
+}
 
 
 // /*-------------------------------------------------------------------
@@ -125,7 +123,7 @@ type Reg = isize;
 pub struct Move { pub to: Reg, pub from: Reg }
 
 impl TInstruction for Move {
-    fn step(&self, interpreter: &mut Interpreter) {}
+    fn step(&self, _: &mut Interpreter) {}
     fn load(d: u32) -> Self {
         let (to, from) = parse_A_B(d);
         Move {
@@ -140,7 +138,7 @@ impl TInstruction for Move {
 pub struct LoadK { pub a: Reg, pub b: Reg }
 
 impl TInstruction for LoadK {
-    fn step(&self, interpreter: &mut Interpreter) {}
+    fn step(&self, _: &mut Interpreter) {}
     fn load(d: u32) -> Self {
         let (a, b) = parse_A_Bx(d);
         LoadK {
@@ -156,7 +154,7 @@ impl TInstruction for LoadK {
 pub struct Return { pub a: Reg, pub b: Reg }
 
 impl TInstruction for Return {
-    fn step(&self, interpreter: &mut Interpreter) {}
+    fn step(&self, _: &mut Interpreter) {}
     fn load(d: u32) -> Self {
         let (a, b) = parse_A_B(d);
         Return {
@@ -176,7 +174,7 @@ mod tests {
 
     #[test]
     fn parses_return_instruction() {
-        let data = &[0, 0, 0, 38];
+        let data = &[0x26, 0x00, 0x80, 0x00];
         let mut reader = Cursor::new(data);
         let instruction = Instruction::parse(&mut reader);
         assert_eq!(instruction, Instruction::RETURN(Return {a: 0, b: 0}));

@@ -23,14 +23,17 @@ pub struct FunctionBlock {
 impl Parsable for FunctionBlock {
     fn parse<R: Read + Sized>(r: &mut R) -> Self {
         let source_name = r.parse_lua_string();
+        println!("source_name: {:?}", source_name);
         let lines = (Integer::parse(r) as usize, Integer::parse(r) as usize);
         let params = u8::parse(r);
-        r.assert_byte(0b10); // is_vararg
+        r.assert_byte(2); // is_vararg
+        let stack_size = u8::parse(r);
+        println!("stack_size: {:?}", stack_size);
         FunctionBlock {
             source_name: source_name,
             lines: lines,
             amount_parameters: params,
-            stack_size: u8::parse(r),
+            stack_size: stack_size,
             instructions: Code::parse(r),
             constants: Constants::parse(r),
         // DEBUG DATA

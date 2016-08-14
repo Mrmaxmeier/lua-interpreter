@@ -5,14 +5,8 @@ pub use byteorder::ReadBytesExt;
 
 pub const LUA_SIGNATURE: &'static [u8] = &[0x1B, b'L', b'u', b'a'];
 pub const LUAC_DATA: &'static [u8] = &[0x19, 0x93, b'\r', b'\n', 0x1a, b'\n'];
-pub const LUAC_INT: &'static [u8] = &[
-    0x78, 0x56, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00,
-];
-pub const LUAC_NUM: &'static [u8] = &[
-    0x00, 0x00, 0x00, 0x00,
-    0x00, 0x28, 0x77, 0x40,
-]; 
+pub const LUAC_INT: Integer = 0x5678;
+pub const LUAC_NUM: Number = 370.5;
 
 
 pub trait Parsable: Sized {
@@ -41,12 +35,19 @@ impl Parsable for Integer {
     }
 }
 
+pub type Number = f64;
+
+impl Parsable for Number {
+    fn parse<R: Read + Sized>(r: &mut R) -> Self {
+        r.read_f64::<byteorder::LittleEndian>().unwrap()
+    }
+}
+
 pub trait ReadExt: Read + Sized {
     fn assert_byte(&mut self, byte: u8) {
         let read = u8::parse(self);
         assert_eq!(read, byte);
     }
-
 
     fn assert_bytes(&mut self, bytes: &[u8]) {
         let mut read = vec![0u8; bytes.len()];
@@ -76,7 +77,7 @@ pub trait ReadExt: Read + Sized {
                 byte as usize
             }
         };
-        let data = self.read_bytes(len);
+        let data = self.read_bytes(len - 1);
         Some(String::from_utf8_lossy(&data).into_owned())
     }
 }

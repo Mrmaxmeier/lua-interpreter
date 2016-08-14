@@ -1,5 +1,4 @@
 #![feature(box_syntax)]
-#![feature(try_from)]
 
 extern crate byteorder;
 

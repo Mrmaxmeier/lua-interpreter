@@ -1,7 +1,6 @@
 use bytecode::header::Header;
 use bytecode::function_block::FunctionBlock;
 use bytecode::parser::*;
-use std::convert::TryFrom;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Bytecode {
@@ -20,12 +19,6 @@ impl Parsable for Bytecode {
     }
 }
 
-impl<'a> TryFrom<&'a [u8]> for Bytecode {
-    type Err = String;
-    fn try_from(data: &'a [u8]) -> Result<Bytecode, String> {
-        unimplemented!()
-    }
-}
 
 #[cfg(test)]
 mod tests {

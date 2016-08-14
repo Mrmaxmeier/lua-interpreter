@@ -1,4 +1,5 @@
 use bytecode::parser::*;
+use byteorder;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Header {
@@ -43,8 +44,8 @@ impl Parsable for Header {
         r.assert_byte(h.size_of_integer);
         r.assert_byte(h.size_of_number);
 
-        r.assert_bytes(LUAC_INT);
-        r.assert_bytes(LUAC_NUM);
+        assert_eq!(r.read_i64::<byteorder::LittleEndian>().unwrap(), LUAC_INT as i64);
+        assert!((Number::parse(r) - LUAC_NUM).abs() < ::std::f64::EPSILON);
 
         h
     }
@@ -58,11 +59,13 @@ mod tests {
     use bytecode::parser::Parsable;
 
     #[test]
-    fn parses_assignment_header() {
+    fn parses_assignment() {
         let data = include_bytes!("../../fixtures/assignment");
         let expected = Header::default();
 
-        let result = Header::parse(&mut Cursor::new(data.to_vec()));
+        let mut reader = Cursor::new(data.to_vec());
+        let result = Header::parse(&mut reader);
+        assert_eq!(33, reader.position());
         println!("{:#?}\n", result);
 
         assert_eq!(result, expected);
