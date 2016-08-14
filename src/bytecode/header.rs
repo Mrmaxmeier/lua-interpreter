@@ -45,7 +45,7 @@ impl Parsable for Header {
         r.assert_byte(h.size_of_number);
 
         assert_eq!(r.read_i64::<byteorder::LittleEndian>().unwrap(), LUAC_INT as i64);
-        assert!((Number::parse(r) - LUAC_NUM).abs() < ::std::f64::EPSILON);
+        assert!((Float::parse(r) - LUAC_NUM).abs() < ::std::f64::EPSILON);
 
         h
     }

@@ -19,5 +19,5 @@ named!(pub parse_code<Code>, chain!(
     ), size as usize),
     || { instructions }
 ));
-TODO: reimpl parse_ocde
+TODO: reimpl parse_code
 */

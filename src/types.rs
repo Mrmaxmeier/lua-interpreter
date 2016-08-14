@@ -9,7 +9,7 @@ The type string represents immutable sequences of bytes. Lua is 8-bit clean: str
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Number {
-    Integer(i64),
+    Integer(i32),
     Float(f64),
 }
 

@@ -6,7 +6,7 @@ pub use byteorder::ReadBytesExt;
 pub const LUA_SIGNATURE: &'static [u8] = &[0x1B, b'L', b'u', b'a'];
 pub const LUAC_DATA: &'static [u8] = &[0x19, 0x93, b'\r', b'\n', 0x1a, b'\n'];
 pub const LUAC_INT: Integer = 0x5678;
-pub const LUAC_NUM: Number = 370.5;
+pub const LUAC_NUM: Float = 370.5;
 
 
 pub trait Parsable: Sized {
@@ -35,9 +35,9 @@ impl Parsable for Integer {
     }
 }
 
-pub type Number = f64;
+pub type Float = f64;
 
-impl Parsable for Number {
+impl Parsable for Float {
     fn parse<R: Read + Sized>(r: &mut R) -> Self {
         r.read_f64::<byteorder::LittleEndian>().unwrap()
     }

@@ -13,6 +13,8 @@ pub trait TInstruction: Sized {
 pub enum Instruction {
     MOVE(Move),
     LOADK(LoadK),
+    LOADBOOL(LoadBool),
+    LOADNIL(LoadNil),
     GETTABUP(GetTabUp),
     CALL(Call),
     RETURN(Return),
@@ -27,7 +29,10 @@ impl Parsable for Instruction {
         match opcode {
             00 => Instruction::MOVE(Move::load(data)),
             01 => Instruction::LOADK(LoadK::load(data)),
-            // TODO: 2 - 5
+            // TODO: 2 LOADKX
+            03 => Instruction::LOADBOOL(LoadBool::load(data)),
+            04 => Instruction::LOADNIL(LoadNil::load(data)),
+            // TODO: 5 GETUPVAL
             06 => Instruction::GETTABUP(GetTabUp::load(data)),
             // TODO: 7 - 37
             36 => Instruction::CALL(Call::load(data)),
@@ -49,7 +54,7 @@ fn parse_A_B(d: u32) -> (Reg, Reg) {
 
 #[allow(non_snake_case)]
 fn parse_A_Bx(d: u32) -> (Reg, Reg) {
-    let a = d >> 6;
+    let a = (d >> 6) & 0xFF;
     let b = d >> (6 + 8);
     (a as Reg, b as Reg)
 }
@@ -132,7 +137,7 @@ fn parse_A_B_C(d: u32) -> (Reg, Reg, Reg) {
 
 type Reg = isize;
 
-// 0: MOVE   A B   R(A) := R(B)
+// 00: MOVE   A B   R(A) := R(B)
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Move { pub to: Reg, pub from: Reg }
 
@@ -147,7 +152,7 @@ impl TInstruction for Move {
     }
 }
 
-// 1: LOADK   A Bx   R(A) := Kst(Bx)
+// 01: LOADK   A Bx   R(A) := Kst(Bx)
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct LoadK { pub a: Reg, pub b: Reg }
 
@@ -156,6 +161,39 @@ impl TInstruction for LoadK {
     fn load(d: u32) -> Self {
         let (a, b) = parse_A_Bx(d);
         LoadK {
+            a: a,
+            b: b,
+        }
+    }
+}
+
+
+// 03: LOADBOOL     A B C       R(A) := (Bool)B; if (C) pc++
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct LoadBool { pub a: Reg, pub b: Reg, pub c: Reg }
+
+impl TInstruction for LoadBool {
+    fn step(&self, _: &mut Interpreter) {}
+    fn load(d: u32) -> Self {
+        let (a, b, c) = parse_A_B_C(d);
+        LoadBool {
+            a: a,
+            b: b,
+            c: c,
+        }
+    }
+}
+
+
+// 04: LOADNIL      A B         R(A), R(A+1), ..., R(A+B) := nil
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct LoadNil { pub a: Reg, pub b: Reg }
+
+impl TInstruction for LoadNil {
+    fn step(&self, _: &mut Interpreter) {}
+    fn load(d: u32) -> Self {
+        let (a, b) = parse_A_Bx(d);
+        LoadNil {
             a: a,
             b: b,
         }
