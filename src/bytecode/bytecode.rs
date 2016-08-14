@@ -37,6 +37,7 @@ mod tests {
     use std::io::Cursor;
     use bytecode::parser::Parsable;
 
+    #[ignore]
     #[test]
     fn parses_assignment() {
         let data = include_bytes!("../../fixtures/assignment");
@@ -46,7 +47,7 @@ mod tests {
     }
 
 
-
+    #[ignore]
     #[test]
     fn parses_call() {
         let data = include_bytes!("../../fixtures/call");
@@ -76,6 +77,7 @@ mod tests {
         assert_eq!(result, expected);
     }
 
+    #[ignore]
     #[test]
     fn parses_block() {
         let data = include_bytes!("../../fixtures/block");

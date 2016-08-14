@@ -1,103 +1,184 @@
 // http://www.lua.org/source/5.3/lopcodes.h.html
+use bytecode::parser::*;
+use bytecode::interpreter::Interpreter;
+use byteorder;
 
-trait Format: Sized {
-     fn load(&[u8]) -> Self;
+#[allow(non_snake_case)]
+fn parse_A_B(d: u32) -> (Reg, Reg) {
+    // TODO!
+    let a = d >> 6;
+    let b = d >> (6 + 8);
+    (a as Reg, b as Reg)
 }
+
+#[allow(non_snake_case)]
+fn parse_A_Bx(d: u32) -> (Reg, Reg) {
+    // TODO!
+    (d as Reg, d as Reg)
+}
+
+pub trait TInstruction: Sized {
+    fn step(&self, &mut Interpreter);
+    fn load(u32) -> Self;
+}
+
+
+
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-struct A_B {
-    a: u8,
-}
-
-impl Format for A_B {
-   fn load(data: &[u8]) -> Self {
-       A_B {
-           a: 0
-       }
-   }
-}
-
-#[derive(Debug, Clone, PartialEq)]
 pub enum Instruction {
-    /*-------------------------------------------------------------------
-    name         args    description
-    ---------------------------------------------------------------------*/
-    MOVE,/*      A B     R(A) := R(B)                                    */
-    LOADK,/*     A Bx    R(A) := Kst(Bx)                                 */
-    LOADKX,/*    A       R(A) := Kst(extra arg)                          */
-    LOADBOOL,/*  A B C   R(A) := (Bool)B; if (C) pc++                    */
-    LOADNIL,/*   A B     R(A), R(A+1), ..., R(A+B) := nil                */
-    GETUPVAL,/*  A B     R(A) := UpValue[B]                              */
-
-    GETTABUP,/*  A B C   R(A) := UpValue[B][RK(C)]                       */
-    GETTABLE,/*  A B C   R(A) := R(B)[RK(C)]                             */
-
-    SETTABUP,/*  A B C   UpValue[A][RK(B)] := RK(C)                      */
-    SETUPVAL,/*  A B     UpValue[B] := R(A)                              */
-    SETTABLE,/*  A B C   R(A)[RK(B)] := RK(C)                            */
-
-    NEWTABLE,/*  A B C   R(A) := {} (size = B,C)                         */
-
-    SELF,/*      A B C   R(A+1) := R(B); R(A) := R(B)[RK(C)]             */
-
-    ADD,/*       A B C   R(A) := RK(B) + RK(C)                           */
-    SUB,/*       A B C   R(A) := RK(B) - RK(C)                           */
-    MUL,/*       A B C   R(A) := RK(B) * RK(C)                           */
-    MOD,/*       A B C   R(A) := RK(B) % RK(C)                           */
-    POW,/*       A B C   R(A) := RK(B) ^ RK(C)                           */
-    DIV,/*       A B C   R(A) := RK(B) / RK(C)                           */
-    IDIV,/*      A B C   R(A) := RK(B) // RK(C)                          */
-    BAND,/*      A B C   R(A) := RK(B) & RK(C)                           */
-    BOR,/*       A B C   R(A) := RK(B) | RK(C)                           */
-    BXOR,/*      A B C   R(A) := RK(B) ~ RK(C)                           */
-    SHL,/*       A B C   R(A) := RK(B) << RK(C)                          */
-    SHR,/*       A B C   R(A) := RK(B) >> RK(C)                          */
-    UNM,/*       A B     R(A) := -R(B)                                   */
-    BNOT,/*      A B     R(A) := ~R(B)                                   */
-    NOT,/*       A B     R(A) := not R(B)                                */
-    LEN,/*       A B     R(A) := length of R(B)                          */
-
-    CONCAT,/*    A B C   R(A) := R(B).. ... ..R(C)                       */
-
-    JMP,/*       A sBx   pc+=sBx; if (A) close all upvalues >= R(A - 1)  */
-    EQ,/*        A B C   if ((RK(B) == RK(C)) ~= A) then pc++            */
-    LT,/*        A B C   if ((RK(B) <  RK(C)) ~= A) then pc++            */
-    LE,/*        A B C   if ((RK(B) <= RK(C)) ~= A) then pc++            */
-
-    TEST,/*      A C     if not (R(A) <=> C) then pc++                   */
-    TESTSET,/*   A B C   if (R(B) <=> C) then R(A) := R(B) else pc++     */
-
-    CALL,/*      A B C   R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1)) */
-    TAILCALL,/*  A B C   return R(A)(R(A+1), ... ,R(A+B-1))              */
-    RETURN,/*    A B     return R(A), ... ,R(A+B-2)      (see note)      */
-
-    FORLOOP,/*   A sBx   R(A)+=R(A+2);
-                            if R(A) <?= R(A+1) then { pc+=sBx; R(A+3)=R(A) }*/
-    FORPREP,/*   A sBx   R(A)-=R(A+2); pc+=sBx                           */
-
-    TFORCALL,/*  A C     R(A+3), ... ,R(A+2+C) := R(A)(R(A+1), R(A+2));  */
-    TFORLOOP,/*  A sBx   if R(A+1) ~= nil then { R(A)=R(A+1); pc += sBx }*/
-
-    SETLIST,/*   A B C   R(A)[(C-1)*FPF+i] := R(A+i), 1 <= i <= B        */
-
-    CLOSURE,/*   A Bx    R(A) := closure(KPROTO[Bx])                     */
-
-    VARARG,/*    A B     R(A), R(A+1), ..., R(A+B-2) = vararg            */
-
-    EXTRAARG/*   Ax      extra (larger) argument for previous opcode     */
+    MOVE(Move),
+    LOADK(LoadK),
+    RETURN(Return),
 }
 
-/*
-named!(pub parse_instruction< Box<Instruction> >, map_res!(
-    take!(4),
-    |d: &[u8]| -> Result<Box<Instruction>, String> {
-        let i = d[0]; // TODO: read instruction fields
-        println!("i: {}, A: {:?}, B: {:?}, C: {:?}", i, d[1], d[2], d[3]);
-        println!("trying to convert {} into {:?}", i, Instruction::from_u8(i));
-        match Instruction::from_u8(i) {
-            Some(i) => Ok(box i),
-            None => Err(format!("no instruction found for {}.", i)),
+
+impl Parsable for Instruction {
+    fn parse<R: Read + Sized>(r: &mut R) -> Self {
+        let data = r.read_u32::<byteorder::BigEndian>().unwrap();
+        let opcode = data & 0b111111;
+        println!("data: {:?}, opcode: {:?}", data, opcode);
+        match opcode {
+            00 => Instruction::MOVE(Move::load(data)),
+            01 => Instruction::LOADK(LoadK::load(data)),
+            // TODO: ...
+            38 => Instruction::RETURN(Return::load(data)),
+            // TODO: ...
+            invalid => panic!("invalid opcode: {:?}, instruction: {:?}", invalid, data)
         }
     }
-));
-*/
+}
+
+
+
+// /*-------------------------------------------------------------------
+// name         args    description
+// ---------------------------------------------------------------------*/
+// MOVE,/*      A B     R(A) := R(B)                                    */
+// LOADK,/*     A Bx    R(A) := Kst(Bx)                                 */
+// LOADKX,/*    A       R(A) := Kst(extra arg)                          */
+// LOADBOOL,/*  A B C   R(A) := (Bool)B; if (C) pc++                    */
+// LOADNIL,/*   A B     R(A), R(A+1), ..., R(A+B) := nil                */
+// GETUPVAL,/*  A B     R(A) := UpValue[B]                              */
+
+// GETTABUP,/*  A B C   R(A) := UpValue[B][RK(C)]                       */
+// GETTABLE,/*  A B C   R(A) := R(B)[RK(C)]                             */
+
+// SETTABUP,/*  A B C   UpValue[A][RK(B)] := RK(C)                      */
+// SETUPVAL,/*  A B     UpValue[B] := R(A)                              */
+// SETTABLE,/*  A B C   R(A)[RK(B)] := RK(C)                            */
+
+// NEWTABLE,/*  A B C   R(A) := {} (size = B,C)                         */
+
+// SELF,/*      A B C   R(A+1) := R(B); R(A) := R(B)[RK(C)]             */
+
+// ADD,/*       A B C   R(A) := RK(B) + RK(C)                           */
+// SUB,/*       A B C   R(A) := RK(B) - RK(C)                           */
+// MUL,/*       A B C   R(A) := RK(B) * RK(C)                           */
+// MOD,/*       A B C   R(A) := RK(B) % RK(C)                           */
+// POW,/*       A B C   R(A) := RK(B) ^ RK(C)                           */
+// DIV,/*       A B C   R(A) := RK(B) / RK(C)                           */
+// IDIV,/*      A B C   R(A) := RK(B) // RK(C)                          */
+// BAND,/*      A B C   R(A) := RK(B) & RK(C)                           */
+// BOR,/*       A B C   R(A) := RK(B) | RK(C)                           */
+// BXOR,/*      A B C   R(A) := RK(B) ~ RK(C)                           */
+// SHL,/*       A B C   R(A) := RK(B) << RK(C)                          */
+// SHR,/*       A B C   R(A) := RK(B) >> RK(C)                          */
+// UNM,/*       A B     R(A) := -R(B)                                   */
+// BNOT,/*      A B     R(A) := ~R(B)                                   */
+// NOT,/*       A B     R(A) := not R(B)                                */
+// LEN,/*       A B     R(A) := length of R(B)                          */
+
+// CONCAT,/*    A B C   R(A) := R(B).. ... ..R(C)                       */
+
+// JMP,/*       A sBx   pc+=sBx; if (A) close all upvalues >= R(A - 1)  */
+// EQ,/*        A B C   if ((RK(B) == RK(C)) ~= A) then pc++            */
+// LT,/*        A B C   if ((RK(B) <  RK(C)) ~= A) then pc++            */
+// LE,/*        A B C   if ((RK(B) <= RK(C)) ~= A) then pc++            */
+
+// TEST,/*      A C     if not (R(A) <=> C) then pc++                   */
+// TESTSET,/*   A B C   if (R(B) <=> C) then R(A) := R(B) else pc++     */
+
+// CALL,/*      A B C   R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1)) */
+// TAILCALL,/*  A B C   return R(A)(R(A+1), ... ,R(A+B-1))              */
+// RETURN,/*    A B     return R(A), ... ,R(A+B-2)      (see note)      */
+
+// FORLOOP,/*   A sBx   R(A)+=R(A+2);
+//                         if R(A) <?= R(A+1) then { pc+=sBx; R(A+3)=R(A) }*/
+// FORPREP,/*   A sBx   R(A)-=R(A+2); pc+=sBx                           */
+
+// TFORCALL,/*  A C     R(A+3), ... ,R(A+2+C) := R(A)(R(A+1), R(A+2));  */
+// TFORLOOP,/*  A sBx   if R(A+1) ~= nil then { R(A)=R(A+1); pc += sBx }*/
+
+// SETLIST,/*   A B C   R(A)[(C-1)*FPF+i] := R(A+i), 1 <= i <= B        */
+
+// CLOSURE,/*   A Bx    R(A) := closure(KPROTO[Bx])                     */
+
+// VARARG,/*    A B     R(A), R(A+1), ..., R(A+B-2) = vararg            */
+
+// EXTRAARG/*   Ax      extra (larger) argument for previous opcode     */
+
+type Reg = isize;
+
+// 0: MOVE   A B   R(A) := R(B)
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Move { pub to: Reg, pub from: Reg }
+
+impl TInstruction for Move {
+    fn step(&self, interpreter: &mut Interpreter) {}
+    fn load(d: u32) -> Self {
+        let (to, from) = parse_A_B(d);
+        Move {
+            to: to,
+            from: from,
+        }
+    }
+}
+
+// 1: LOADK   A Bx   R(A) := Kst(Bx)
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct LoadK { pub a: Reg, pub b: Reg }
+
+impl TInstruction for LoadK {
+    fn step(&self, interpreter: &mut Interpreter) {}
+    fn load(d: u32) -> Self {
+        let (a, b) = parse_A_Bx(d);
+        LoadK {
+            a: a,
+            b: b,
+        }
+    }
+}
+
+// 37: RETURN   A B   return R(A), ... ,R(A+B-2)
+// if (B == 0) then return up to 'top'.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Return { pub a: Reg, pub b: Reg }
+
+impl TInstruction for Return {
+    fn step(&self, interpreter: &mut Interpreter) {}
+    fn load(d: u32) -> Self {
+        let (a, b) = parse_A_B(d);
+        Return {
+            a: a,
+            b: b,
+        }
+    }
+}
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Cursor; 
+    use bytecode::parser::Parsable;
+
+    #[test]
+    fn parses_return_instruction() {
+        let data = &[0, 0, 0, 38];
+        let mut reader = Cursor::new(data);
+        let instruction = Instruction::parse(&mut reader);
+        assert_eq!(instruction, Instruction::RETURN(Return {a: 0, b: 0}));
+    }
+}

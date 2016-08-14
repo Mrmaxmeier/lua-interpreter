@@ -4,8 +4,6 @@ use bytecode::constants::Constants;
 use bytecode::upvalues::Upvalues;
 use bytecode::protos::Protos;
 use bytecode::debug::Debug;
-use bytecode::instructions::Instruction;
-use types::Type;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct FunctionBlock {
@@ -14,8 +12,8 @@ pub struct FunctionBlock {
     pub amount_parameters: u8,
     // is_vararg: VarArgs,
     pub stack_size: u8,
-    pub instructions: Vec<Box<Instruction>>,
-    pub constants: Vec<Box<Type>>,
+    pub instructions: Code,
+    pub constants: Constants,
 // DEBUG DATA
     pub protos: (),
     pub upvalues: (),
@@ -49,6 +47,7 @@ mod tests {
     use std::io::Cursor;
     use types::Type;
     use bytecode::header::Header;
+    use bytecode::instructions;
     use bytecode::instructions::Instruction;
     use bytecode::debug::Debug;
     use bytecode::parser::{Parsable, ReadExt};
@@ -69,8 +68,8 @@ mod tests {
         //  is_vararg: VarArgs.VARARG_DEFAULT,
             stack_size: 2,
             instructions: vec![
-                box Instruction::LOADK,
-                box Instruction::RETURN,
+                box Instruction::LOADK(instructions::LoadK {a: 0, b: 0}),
+                box Instruction::RETURN(instructions::Return {a: 0, b: 0}),
             ],
             constants: vec![box Type::String("zweiundvierzig".into())],
         // DEBUG DATA

@@ -59,7 +59,7 @@ mod tests {
 
     #[test]
     fn parses_assignment_header() {
-        let data = &include_bytes!("../../fixtures/assignment")[..40];
+        let data = include_bytes!("../../fixtures/assignment");
         let expected = Header::default();
 
         let result = Header::parse(&mut Cursor::new(data.to_vec()));

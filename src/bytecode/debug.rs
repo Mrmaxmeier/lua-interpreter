@@ -8,7 +8,7 @@ pub struct Debug {
 }
 
 impl Parsable for Debug {
-    fn parse<R: Read + Sized>(r: &mut R) -> Self {
+    fn parse<R: Read + Sized>(_: &mut R) -> Self {
         Debug {
             line_info: (),
             locals: (),

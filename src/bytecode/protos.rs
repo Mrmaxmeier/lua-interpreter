@@ -1,4 +1,4 @@
-use bytecode::parser::*;
+// use bytecode::parser::*;
 
 pub type Protos = ();
 

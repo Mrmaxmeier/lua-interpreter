@@ -1,7 +1,7 @@
+/*
 use bytecode::parser::*;
 use types::Type;
 
-/*
 named!(pub parse_type< Box<Type> >, alt!(
     tag!(&[0]) => { |_| box Type::Nil } | // LUA_TNIL
     tag!(&[1, 0]) => { |_| box Type::Boolean(false) } | // LUA_TBOOLEAN

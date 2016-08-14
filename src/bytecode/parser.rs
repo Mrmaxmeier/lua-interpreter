@@ -1,4 +1,3 @@
-use std::cmp::max;
 pub use std::io;
 pub use std::io::Read;
 use byteorder;
