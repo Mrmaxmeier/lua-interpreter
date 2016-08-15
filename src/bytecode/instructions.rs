@@ -38,7 +38,7 @@ impl Parsable for Instruction {
             36 => Instruction::CALL(Call::load(data)),
             // TODO: 37 TAILCALL
             38 => Instruction::RETURN(Return::load(data)),
-            // TODO: ...
+            // TODO: 39 - 46
             invalid => panic!("invalid opcode: {:?}, instruction: {:?}", invalid, data)
         }
     }
