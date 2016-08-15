@@ -14,9 +14,8 @@ pub struct FunctionBlock {
     pub stack_size: u8,
     pub instructions: Code,
     pub constants: Constants,
-// DEBUG DATA
-    pub protos: (),
-    pub upvalues: (),
+    pub protos: Protos,
+    pub upvalues: Upvalues,
     pub debug: Debug
 }
 
@@ -29,17 +28,26 @@ impl Parsable for FunctionBlock {
         r.assert_byte(2); // is_vararg
         let stack_size = u8::parse(r);
         println!("stack_size: {:?}", stack_size);
+
+        let code = Code::parse(r);
+        let constants = Constants::parse(r);
+        let mut upvalues = Upvalues::parse(r);
+        let mut protos = Protos::parse(r);
+        let debug = Debug::parse(r);
+        if let Some(ref debug_data) = debug {
+            debug_data.update_upvalues(&mut upvalues);
+        }
+
         FunctionBlock {
             source_name: source_name,
             lines: lines,
             amount_parameters: params,
             stack_size: stack_size,
-            instructions: Code::parse(r),
-            constants: Constants::parse(r),
-        // DEBUG DATA
-            upvalues: Upvalues::parse(r),
-            protos: Protos::parse(r),
-            debug: Debug::parse(r)
+            instructions: code,
+            constants: constants,
+            upvalues: upvalues,
+            protos: protos,
+            debug: debug
         }
     }
 }

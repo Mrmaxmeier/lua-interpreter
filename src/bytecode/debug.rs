@@ -1,19 +1,22 @@
 use bytecode::parser::*;
+use bytecode::upvalues::Upvalues;
 
 #[derive(Debug, PartialEq, Clone, Default)]
-pub struct Debug {
+pub struct DebugData {
     pub line_info: (),
     pub locals: (),
     pub upvalues: (),
 }
 
+impl DebugData {
+    pub fn update_upvalues(&self, upvalues: &mut Upvalues) {}
+}
+
+pub type Debug = Option<DebugData>;
+
 impl Parsable for Debug {
     fn parse<R: Read + Sized>(_: &mut R) -> Self {
-        Debug {
-            line_info: (),
-            locals: (),
-            upvalues: (),
-        }
+        None
     }
 }
 
