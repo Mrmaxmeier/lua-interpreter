@@ -6,7 +6,6 @@ mod header;
 mod function_block;
 mod code;
 mod constants;
-mod protos;
 mod upvalues;
 mod debug;
 mod types;

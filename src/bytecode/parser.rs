@@ -70,9 +70,14 @@ pub trait ReadExt: Read + Sized {
     fn parse_lua_string(&mut self) -> Option<String> {
         let len = match self.read_byte() {
             0x00 => return None,
-            0xFF => Integer::parse(self) as usize,
+            0xFF => {
+                let n = Integer::parse(self) as usize;
+                println!("parsing long string ({}) due to 0xFF", n);
+                n
+            },
             byte => byte as usize,
         };
+        println!("string size: {}", len);
         let data = self.read_bytes(len - 1);
         Some(String::from_utf8_lossy(&data).into_owned())
     }

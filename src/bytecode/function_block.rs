@@ -2,7 +2,6 @@ use bytecode::parser::*;
 use bytecode::code::Code;
 use bytecode::constants::Constants;
 use bytecode::upvalues::Upvalues;
-use bytecode::protos::Protos;
 use bytecode::debug::Debug;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -14,7 +13,7 @@ pub struct FunctionBlock {
     pub stack_size: u8,
     pub instructions: Code,
     pub constants: Constants,
-    pub protos: Protos,
+    pub protos: Vec<FunctionBlock>,
     pub upvalues: Upvalues,
     pub debug: Debug
 }
@@ -32,7 +31,10 @@ impl Parsable for FunctionBlock {
         let code = Code::parse(r);
         let constants = Constants::parse(r);
         let mut upvalues = Upvalues::parse(r);
-        let mut protos = Protos::parse(r);
+        let len_protos = Integer::parse(r);
+        let protos = (0..len_protos)
+            .map(|_| FunctionBlock::parse(r))
+            .collect::<Vec<_>>();
         let debug = Debug::parse(r);
         if let Some(ref debug_data) = debug {
             debug_data.update_upvalues(&mut upvalues);
@@ -76,16 +78,14 @@ mod tests {
             source_name: Some("@assignment.lua".into()),
             lines: (0, 0),
             amount_parameters: 0,
-        //  is_vararg: VarArgs.VARARG_DEFAULT,
             stack_size: 2,
             instructions: vec![
                 box Instruction::LOADK(instructions::LoadK {a: 0, b: 0}),
                 box Instruction::RETURN(instructions::Return {a: 0, b: 0}),
             ],
             constants: vec![box Type::String("zweiundvierzig".into())],
-        // DEBUG DATA
-            protos: (),
-            upvalues: (),
+            protos: vec![],
+            upvalues: vec![],
             debug: Debug::default()
         };
         println!("result: {:#?}\n", result);

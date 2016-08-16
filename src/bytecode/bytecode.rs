@@ -23,8 +23,7 @@ impl Parsable for Bytecode {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bytecode::function_block::FunctionBlock;
-    use bytecode::debug::Debug;
+    use bytecode::upvalues::Upvalue;
     use types::Type;
     use std::io::Cursor;
     use bytecode::parser::Parsable;
@@ -40,6 +39,13 @@ mod tests {
     #[test]
     fn parses_a_bunch_of_constants() {
         let data = include_bytes!("../../fixtures/a_bunch_of_constants");
+        Bytecode::parse(&mut Cursor::new(data.to_vec()));
+    }
+
+    #[ignore]
+    #[test]
+    fn parses_gcd() {
+        let data = include_bytes!("../../fixtures/gcd");
         Bytecode::parse(&mut Cursor::new(data.to_vec()));
     }
 
@@ -60,24 +66,26 @@ mod tests {
     #[test]
     fn parses_block_correctly() {
         let data = include_bytes!("../../fixtures/block");
-        let result = Bytecode::parse(&mut Cursor::new(data.to_vec()));
-        let expected = FunctionBlock {
-            source_name: Some("@block.lua".into()),
-            lines: (0, 0),
-            amount_parameters: 0,
-            stack_size: 2,
-            instructions: vec![
-                box Instruction::RETURN(instructions::Return{a: 0, b: 0})
-            ],
-            constants: vec![],
-        // DEBUG DATA
-            protos: (),
-            upvalues: (),
-            debug: Debug::default()
-        };
+        let result = Bytecode::parse(&mut Cursor::new(data.to_vec())).func;
 
+        println!("result: {:#?}\n", result);
 
-        println!("result: {:#?}\n", result.func);
-        assert_eq!(result.func, expected);
+        assert_eq!(result.source_name.unwrap(), "@block.lua".to_owned());
+        assert_eq!(result.lines, (0, 0));
+        assert_eq!(result.amount_parameters, 0);
+        assert_eq!(result.stack_size, 2);
+        assert_eq!(result.instructions, vec![
+            box Instruction::RETURN(instructions::Return{a: 0, b: 0})
+        ]);
+        assert_eq!(result.constants, vec![]);
+        assert_eq!(result.protos, vec![]);
+        assert_eq!(result.upvalues, vec![
+            Upvalue {
+                name: Some("_ENV".to_owned()),
+                instack: 1,
+                idx: 0
+            }
+        ]);
+        assert!(result.debug.is_some());
     }
 }
