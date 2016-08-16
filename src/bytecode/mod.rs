@@ -9,3 +9,5 @@ mod constants;
 mod upvalues;
 mod debug;
 mod types;
+
+// TODO: integrate lundump.c/`check_*` methods

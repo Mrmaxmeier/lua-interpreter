@@ -52,7 +52,7 @@ impl Parsable for Debug {
         let upvalues = (0..len_upvalues)
             .map(|_| String::parse(r))
             .collect();
-        
+
         if len_lineinfo == 0 && len_locals == 0 && len_upvalues == 0 {
             None
         } else {

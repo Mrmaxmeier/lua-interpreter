@@ -18,6 +18,17 @@ pub struct FunctionBlock {
     pub debug: Debug
 }
 
+impl FunctionBlock {
+    fn propagate_source(&mut self, name: Option<String>) {
+        for proto in &mut self.protos {
+            proto.propagate_source(name.clone());
+        }
+        if self.source_name.is_none() {
+            self.source_name = name;
+        }
+    }
+}
+
 impl Parsable for FunctionBlock {
     fn parse<R: Read + Sized>(r: &mut R) -> Self {
         let source_name = r.parse_lua_string();
@@ -32,9 +43,12 @@ impl Parsable for FunctionBlock {
         let constants = Constants::parse(r);
         let mut upvalues = Upvalues::parse(r);
         let len_protos = Integer::parse(r);
-        let protos = (0..len_protos)
+        let mut protos = (0..len_protos)
             .map(|_| FunctionBlock::parse(r))
             .collect::<Vec<_>>();
+        for proto in &mut protos {
+            proto.propagate_source(source_name.clone());
+        }
         let debug = Debug::parse(r);
         if let Some(ref debug_data) = debug {
             debug_data.update_upvalues(&mut upvalues);
@@ -62,7 +76,7 @@ mod tests {
     use bytecode::header::Header;
     use bytecode::instructions;
     use bytecode::instructions::Instruction;
-    use bytecode::debug::Debug;
+    use bytecode::upvalues::Upvalue;
     use bytecode::parser::{Parsable, ReadExt};
 
     #[test]
@@ -74,21 +88,24 @@ mod tests {
         assert_eq!(34, reader.position());
 
         let result = FunctionBlock::parse(&mut reader);
-        let expected = FunctionBlock {
-            source_name: Some("@assignment.lua".into()),
-            lines: (0, 0),
-            amount_parameters: 0,
-            stack_size: 2,
-            instructions: vec![
-                box Instruction::LOADK(instructions::LoadK {a: 0, b: 0}),
-                box Instruction::RETURN(instructions::Return {a: 0, b: 0}),
-            ],
-            constants: vec![box Type::String("zweiundvierzig".into())],
-            protos: vec![],
-            upvalues: vec![],
-            debug: Debug::default()
-        };
         println!("result: {:#?}\n", result);
-        assert_eq!(result, expected);
+
+        assert_eq!(result.source_name, Some("@assignment.lua".to_owned()));
+        assert_eq!(result.lines, (0, 0));
+        assert_eq!(result.stack_size, 2);
+        assert_eq!(result.instructions, vec![
+            box Instruction::LOADK(instructions::LoadK {a: 0, b: 0}),
+            box Instruction::RETURN(instructions::Return {a: 0, b: 0}),
+        ]);
+        assert_eq!(result.constants, vec![
+            box Type::String("zweiundvierzig".into())
+        ]);
+        assert_eq!(result.upvalues, vec![
+            Upvalue {
+                name: Some("_ENV".into()),
+                instack: 1,
+                idx: 0
+            }
+        ]);
     }
 }
