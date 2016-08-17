@@ -9,7 +9,9 @@ const LUA_TNUMINT: u8 = (3 | (1 << 4));  // integer numbers
 
 impl Parsable for Box<Type> {
     fn parse<R: Read + Sized>(r: &mut R) -> Self {
-        match r.read_byte() {
+        let kind = r.read_byte();
+        println!("parsing constant: {:#X}", kind);
+        match kind {
             0 => box Type::Nil,
             1 => match r.read_byte() {
                 0 => box Type::Boolean(false),
@@ -18,7 +20,11 @@ impl Parsable for Box<Type> {
             },
             2 => panic!("LUA_TLIGHTUSERDATA is not yet implemented"),
             LUA_TNUMFLT => box Type::Number(Number::Float(Float::parse(r))),
-            LUA_TNUMINT => box Type::Number(Number::Integer(Integer::parse(r))),
+            LUA_TNUMINT => {
+                // TODO: cleanup this major wierdness
+                let n = i64::parse(r);
+                box Type::Number(Number::Integer(n as Integer))
+            },
             LUA_TSHRSTR | LUA_TLNGSTR => match r.parse_lua_string() {
                 None => box Type::Nil,
                 Some(string) => box Type::String(string),

@@ -24,11 +24,11 @@ impl Parsable for Bytecode {
 mod tests {
     use super::*;
     use bytecode::upvalues::Upvalue;
-    use types::Type;
     use std::io::Cursor;
     use bytecode::parser::Parsable;
     use bytecode::instructions;
     use bytecode::instructions::Instruction;
+    use types::{Type, Number};
 
     #[test]
     fn parses_assignment() {
@@ -37,9 +37,26 @@ mod tests {
     }
 
     #[test]
-    fn parses_a_bunch_of_constants() {
+    fn parses_a_bunch_of_constants_correctly() {
         let data = include_bytes!("../../fixtures/a_bunch_of_constants");
-        Bytecode::parse(&mut Cursor::new(data.to_vec()));
+        let result = Bytecode::parse(&mut Cursor::new(data.to_vec())).func;
+
+
+        assert_eq!(result.source_name.unwrap(), "@a_bunch_of_constants.lua".to_owned());
+        assert_eq!(result.constants, vec![
+            box Type::Number(Number::Integer(42)),
+            box Type::Number(Number::Float(-0.08333333333)),
+            box Type::String("TSHRSTR".to_owned()),
+            box Type::String(
+                "TLNGSTR\n\
+______________________________________50\n\
+_____________________________________100\n\
+_____________________________________150\n\
+_____________________________________200\n\
+_____________________________________250\n\
+_____________________________________300".to_owned()
+            )
+        ]);
     }
 
     #[ignore]

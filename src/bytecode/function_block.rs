@@ -40,9 +40,13 @@ impl Parsable for FunctionBlock {
         println!("stack_size: {:?}", stack_size);
 
         let code = Code::parse(r);
+        println!("code {:#?}", code);
         let constants = Constants::parse(r);
+        println!("constants {:#?}", constants);
         let mut upvalues = Upvalues::parse(r);
+        println!("upvalues {:#?}", upvalues);
         let len_protos = Integer::parse(r);
+        println!("parsing {} protos (subblocks)", len_protos);
         let mut protos = (0..len_protos)
             .map(|_| FunctionBlock::parse(r))
             .collect::<Vec<_>>();
@@ -94,7 +98,7 @@ mod tests {
         assert_eq!(result.lines, (0, 0));
         assert_eq!(result.stack_size, 2);
         assert_eq!(result.instructions, vec![
-            box Instruction::LOADK(instructions::LoadK {a: 0, b: 0}),
+            box Instruction::LOADK(instructions::LoadK {local: 0, constant: 0}),
             box Instruction::RETURN(instructions::Return {a: 0, b: 0}),
         ]);
         assert_eq!(result.constants, vec![

@@ -27,21 +27,26 @@ impl Parsable for u8 {
     }
 }
 
-pub type Integer = i32;
-
-impl Parsable for Integer {
+impl Parsable for i32 {
     fn parse<R: Read + Sized>(r: &mut R) -> Self {
         r.read_i32::<byteorder::LittleEndian>().unwrap()
     }
 }
 
-pub type Float = f64;
+impl Parsable for i64 {
+    fn parse<R: Read + Sized>(r: &mut R) -> Self {
+        r.read_i64::<byteorder::LittleEndian>().unwrap()
+    }
+}
 
-impl Parsable for Float {
+impl Parsable for f64 {
     fn parse<R: Read + Sized>(r: &mut R) -> Self {
         r.read_f64::<byteorder::LittleEndian>().unwrap()
     }
 }
+
+pub type Integer = i32;
+pub type Float = f64;
 
 pub trait ReadExt: Read + Sized {
     fn assert_byte(&mut self, byte: u8) {

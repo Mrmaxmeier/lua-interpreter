@@ -154,15 +154,15 @@ impl TInstruction for Move {
 
 // 01: LOADK   A Bx   R(A) := Kst(Bx)
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct LoadK { pub a: Reg, pub b: Reg }
+pub struct LoadK { pub local: Reg, pub constant: Reg }
 
 impl TInstruction for LoadK {
     fn step(&self, _: &mut Interpreter) {}
     fn load(d: u32) -> Self {
         let (a, b) = parse_A_Bx(d);
         LoadK {
-            a: a,
-            b: b,
+            local: a,
+            constant: b,
         }
     }
 }
