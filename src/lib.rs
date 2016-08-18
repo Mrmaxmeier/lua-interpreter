@@ -6,7 +6,5 @@ extern crate test;
 extern crate regex;
 extern crate byteorder;
 
-mod types;
-pub use types::Type;
-mod bytecode;
-pub use bytecode::*;
+pub mod types;
+pub mod bytecode;

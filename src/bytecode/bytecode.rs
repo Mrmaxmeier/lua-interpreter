@@ -178,6 +178,17 @@ main <@a_bunch_of_constants.lua> Lua (5, 3)
 \t  4\t LoadK { local: 0, constant: 1 }              \t ; 0 = a, 1 = -0.08333333333
 \t  5\t LoadK { local: 0, constant: 2 }              \t ; 0 = a, 2 = "TSHRSTR"
 \t  6\t LoadK { local: 0, constant: 3 }              \t ; 0 = a, 3 = "TLNGSTR"
+\t  7\t Return { a: 0, b: 0 }                        \t ; return to top
+
+[4 constants]
+\t  1\t  42
+\t  2\t  -0.08333333333
+\t  3\t  "TSHRSTR"
+\t  4\t  "TLNGSTR"
+
+[1 locals]
+\t  1\t  Local { varname: "a", startpc: 1, endpc: 7 }
+
 "#);
         for (line_r, line_e) in pprint_result.lines().zip(&expected_lines) {
             if line_r != line_e {

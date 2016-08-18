@@ -1,13 +1,13 @@
-mod interpreter;
-mod instructions;
-mod parser;
-mod bytecode;
-mod header;
-mod function_block;
-mod code;
-mod constants;
-mod upvalues;
-mod debug;
-mod types;
+pub mod interpreter;
+pub mod instructions;
+pub mod parser;
+pub mod bytecode;
+pub mod header;
+pub mod function_block;
+pub mod code;
+pub mod constants;
+pub mod upvalues;
+pub mod debug;
+pub mod types;
 
 // TODO: integrate lundump.c/`check_*` methods

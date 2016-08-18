@@ -263,7 +263,7 @@ impl LoadInstruction for LoadNil {
 }
 
 impl InstructionOps for LoadNil {
-    fn debug_info(&self, f: &FunctionBlock, d: &DebugData) -> Vec<String> {
+    fn debug_info(&self, _: &FunctionBlock, d: &DebugData) -> Vec<String> {
         let start = self.start as usize;
         let end = start + self.range + 1;
         (start..end).map(|i| format!("{} = {}", i, d.locals[i])).collect()
@@ -323,6 +323,13 @@ impl LoadInstruction for Call {
 
 // 38: RETURN   A B     return R(A), ... ,R(A+B-2)
 // if (B == 0) then return up to 'top'.
+//
+// Returns to the calling function, with optional return values.
+// If B is 1, there are no return values. If B is 2 or more, there are (B-1) return values, located in consecutive registers from R(A) onwards.
+// If B is 0, the set of values from R(A) to the top of the stack is returned.
+// This form is used when the last expression in the return list is a function call, so the number of actual values returned is indeterminate.
+// RETURN also closes any open upvalues, equivalent to a CLOSE instruction.
+// See the CLOSE instruction for more information.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Return { pub a: Reg, pub b: Reg }
 
@@ -340,6 +347,8 @@ impl InstructionOps for Return {
     fn debug_info(&self, _: &FunctionBlock, _: &DebugData) -> Vec<String> {
         if self.b == 0 {
             vec!["return to top".to_owned()]
+        } else if self.b == 1 {
+            vec!["no return values".to_owned()]
         } else {
             vec![]
         }
