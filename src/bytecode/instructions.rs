@@ -1,13 +1,18 @@
 // http://www.lua.org/source/5.3/lopcodes.h.html
 use bytecode::parser::*;
 use bytecode::interpreter::Interpreter;
+use bytecode::function_block::FunctionBlock;
+use bytecode::debug::DebugData;
 use byteorder;
+use std::fmt;
 
 pub trait LoadInstruction: Sized {
     fn load(u32) -> Self;
 }
-pub trait InstructionOps: {
-    fn exec(&self, &mut Interpreter);
+
+pub trait InstructionOps: fmt::Debug {
+    fn exec(&self, _: &mut Interpreter) { unimplemented!() } // TODO: remove impl
+    fn debug_info(&self, &FunctionBlock, &DebugData) -> Vec<String> { vec![] }
 }
 
 
@@ -27,7 +32,7 @@ macro_rules! match_trait_as_impl {
     ( $this:expr, [$( $x:path ),*] => as $cast_to:ty ) => {
         match $this {
             $( &$x(ref v) => v as $cast_to, )*
-            v => panic!("`as {:?}` not implemented for {:?}", stringify!($cast_to), v) 
+            v => panic!("`as {}` not implemented for {:?}", stringify!($cast_to), v) 
         }
     };
 }
@@ -35,7 +40,11 @@ macro_rules! match_trait_as_impl {
 impl Instruction {
     pub fn as_ops(&self) -> &InstructionOps {
         match_trait_as_impl!(self, [
-            Instruction::JMP
+            Instruction::LOADK,
+            Instruction::LOADBOOL,
+            Instruction::LOADNIL,
+            Instruction::JMP,
+            Instruction::RETURN
         ] => as &InstructionOps)
     }
     pub fn exec(&self, i: &mut Interpreter) {
@@ -205,6 +214,15 @@ impl LoadInstruction for LoadK {
     }
 }
 
+impl InstructionOps for LoadK {
+    fn debug_info(&self, f: &FunctionBlock, d: &DebugData) -> Vec<String> {
+        vec![
+            format!("{} = {}", self.local, d.locals[self.local as usize]),
+            format!("{} = {}", self.constant, f.constants[self.constant as usize])
+        ]
+    }
+}
+
 
 // 03: LOADBOOL     A B C       R(A) := (Bool)B; if (C) pc++
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -221,18 +239,34 @@ impl LoadInstruction for LoadBool {
     }
 }
 
+impl InstructionOps for LoadBool {
+    fn debug_info(&self, _: &FunctionBlock, d: &DebugData) -> Vec<String> {
+        vec![
+            format!("{} = {}", self.reg, d.locals[self.reg as usize])
+        ]
+    }
+}
+
 
 // 04: LOADNIL      A B         R(A), R(A+1), ..., R(A+B) := nil
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct LoadNil { pub a: Reg, pub b: Reg }
+pub struct LoadNil { pub start: Reg, pub range: usize }
 
 impl LoadInstruction for LoadNil {
     fn load(d: u32) -> Self {
         let (a, b) = parse_A_Bx(d);
         LoadNil {
-            a: a,
-            b: b,
+            start: a,
+            range: b as usize,
         }
+    }
+}
+
+impl InstructionOps for LoadNil {
+    fn debug_info(&self, f: &FunctionBlock, d: &DebugData) -> Vec<String> {
+        let start = self.start as usize;
+        let end = start + self.range + 1;
+        (start..end).map(|i| format!("{} = {}", i, d.locals[i])).collect()
     }
 }
 
@@ -298,6 +332,16 @@ impl LoadInstruction for Return {
         Return {
             a: a,
             b: b,
+        }
+    }
+}
+
+impl InstructionOps for Return {
+    fn debug_info(&self, _: &FunctionBlock, _: &DebugData) -> Vec<String> {
+        if self.b == 0 {
+            vec!["return to top".to_owned()]
+        } else {
+            vec![]
         }
     }
 }

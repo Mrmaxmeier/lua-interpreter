@@ -1,12 +1,19 @@
 use bytecode::parser::*;
 use bytecode::upvalues::Upvalues;
+use std::fmt;
 
 
-#[derive(Debug, PartialEq, Clone, Default)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Local {
     varname: String,
     startpc: u32,
     endpc: u32,
+}
+
+impl fmt::Display for Local {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.varname.fmt(f)
+    }
 }
 
 impl Parsable for Local {

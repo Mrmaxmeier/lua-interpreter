@@ -17,8 +17,26 @@ impl Bytecode {
         }
         writeln!(w, "Lua {:?}", self.header.version)?;
         writeln!(w, "\n[{} instructions]", self.func.instructions.len())?;
-        for (i, instr) in self.func.instructions.iter().enumerate() {
-            writeln!(w, "\t{}\t{:?}", i + 1, instr)?;
+        if let Some(ref debug) = self.func.debug {
+            let debug_fmts: Vec<String> = self.func.instructions.iter()
+                .map(|instr| format!("{:?}", instr.as_ops()))
+                .collect();
+            let max_length = debug_fmts.iter()
+                .map(|s| s.len())
+                .max()
+                .unwrap();
+            for (i, instr) in self.func.instructions.iter().enumerate() {
+                let debug_fmt = format!("{:?}", instr.as_ops());
+                let padding = ::std::iter::repeat(' ')
+                    .take(max_length - debug_fmt.len())
+                    .collect::<String>();
+                let debug_info = instr.as_ops().debug_info(&self.func, debug).join(", ");
+                writeln!(w, "\t{}\t{}{}\t; {}", i + 1, debug_fmt, padding, debug_info)?;
+            }
+        } else {
+            for (i, instr) in self.func.instructions.iter().enumerate() {
+                writeln!(w, "\t{}\t{:?}", i + 1, instr.as_ops())?;
+            }
         }
         writeln!(w, "\n[{} constants]", self.func.constants.len())?;
         for (i, constant) in self.func.constants.iter().enumerate() {
@@ -43,7 +61,6 @@ impl Parsable for Bytecode {
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -155,15 +172,19 @@ _____________________________________300".to_owned()
 main <@a_bunch_of_constants.lua> Lua (5, 3)
 
 [7 instructions]
-\t  1\t LoadNil { a: 0, b: 0 }                        \t   ; a = "a"
-\t  2\t LoadBool { reg: 0, value: false, jump: true })\t   ; local = "a"
-\t  3\t LoadK { local: 0, constant: 0 }               \t   ; local = "a" constant = 42
-\t  4\t LoadK { local: 0, constant: 1 }               \t   ; local = "a" constant = -0.08333333333
+\t  1\t LoadNil { start: 0, range: 0 }               \t ; 0 = a
+\t  2\t LoadBool { reg: 0, value: false, jump: true }\t ; 0 = a
+\t  3\t LoadK { local: 0, constant: 0 }              \t ; 0 = a, 0 = 42
+\t  4\t LoadK { local: 0, constant: 1 }              \t ; 0 = a, 1 = -0.08333333333
+\t  5\t LoadK { local: 0, constant: 2 }              \t ; 0 = a, 2 = "TSHRSTR"
+\t  6\t LoadK { local: 0, constant: 3 }              \t ; 0 = a, 3 = "TLNGSTR"
 "#);
         for (line_r, line_e) in pprint_result.lines().zip(&expected_lines) {
             if line_r != line_e {
                 println!("result:   {}", line_r);
                 println!("expected: {}", line_e);
+                println!("result:   {:?}", line_r);
+                println!("expected: {:?}", line_e);
             }
             assert_eq!(line_r, line_e);
         }
