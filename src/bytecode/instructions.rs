@@ -3,9 +3,11 @@ use bytecode::parser::*;
 use bytecode::interpreter::Interpreter;
 use byteorder;
 
-pub trait TInstruction: Sized {
-    fn exec(&self, &mut Interpreter);
+pub trait LoadInstruction: Sized {
     fn load(u32) -> Self;
+}
+pub trait InstructionOps: {
+    fn exec(&self, &mut Interpreter);
 }
 
 
@@ -21,20 +23,23 @@ pub enum Instruction {
     RETURN(Return),
 }
 
-macro_rules! match_trait_impl {
-    ( $this:expr, [$( $x:path ),*] => $meth:ident($arg:expr) ) => {
+macro_rules! match_trait_as_impl {
+    ( $this:expr, [$( $x:path ),*] => as $cast_to:ty ) => {
         match $this {
-            $( &$x(ref v) => v.$meth($arg), )*
-            v => panic!("{:?} not implemented for {:?}", stringify!($meth), v) 
+            $( &$x(ref v) => v as $cast_to, )*
+            v => panic!("`as {:?}` not implemented for {:?}", stringify!($cast_to), v) 
         }
     };
 }
 
 impl Instruction {
-    pub fn exec(&self, i: &mut Interpreter) {
-        match_trait_impl!(self, [
+    pub fn as_ops(&self) -> &InstructionOps {
+        match_trait_as_impl!(self, [
             Instruction::JMP
-        ] => exec(i));
+        ] => as &InstructionOps)
+    }
+    pub fn exec(&self, i: &mut Interpreter) {
+        self.as_ops().exec(i);
     }
 }
 
@@ -176,8 +181,7 @@ type Reg = isize;
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Move { pub to: Reg, pub from: Reg }
 
-impl TInstruction for Move {
-    fn exec(&self, _: &mut Interpreter) {}
+impl LoadInstruction for Move {
     fn load(d: u32) -> Self {
         let (to, from) = parse_A_B(d);
         Move {
@@ -191,8 +195,7 @@ impl TInstruction for Move {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct LoadK { pub local: Reg, pub constant: Reg }
 
-impl TInstruction for LoadK {
-    fn exec(&self, _: &mut Interpreter) {}
+impl LoadInstruction for LoadK {
     fn load(d: u32) -> Self {
         let (a, b) = parse_A_Bx(d);
         LoadK {
@@ -207,8 +210,7 @@ impl TInstruction for LoadK {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct LoadBool { pub reg: Reg, pub value: bool, pub jump: bool }
 
-impl TInstruction for LoadBool {
-    fn exec(&self, _: &mut Interpreter) {}
+impl LoadInstruction for LoadBool {
     fn load(d: u32) -> Self {
         let (a, b, c) = parse_A_B_C(d);
         LoadBool {
@@ -224,8 +226,7 @@ impl TInstruction for LoadBool {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct LoadNil { pub a: Reg, pub b: Reg }
 
-impl TInstruction for LoadNil {
-    fn exec(&self, _: &mut Interpreter) {}
+impl LoadInstruction for LoadNil {
     fn load(d: u32) -> Self {
         let (a, b) = parse_A_Bx(d);
         LoadNil {
@@ -239,8 +240,7 @@ impl TInstruction for LoadNil {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct GetTabUp { pub a: Reg, pub b: Reg, pub c: Reg }
 
-impl TInstruction for GetTabUp {
-    fn exec(&self, _: &mut Interpreter) {}
+impl LoadInstruction for GetTabUp {
     fn load(d: u32) -> Self {
         let (a, b, c) = parse_A_B_C(d);
         GetTabUp {
@@ -255,10 +255,7 @@ impl TInstruction for GetTabUp {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Jmp { pub a: Reg, pub jump: isize }
 
-impl TInstruction for Jmp {
-    fn exec(&self, interpreter: &mut Interpreter) {
-        interpreter.pc += self.jump;
-    }
+impl LoadInstruction for Jmp {
     fn load(d: u32) -> Self {
         let (a, b) = parse_A_sBx(d);
         Jmp {
@@ -268,13 +265,18 @@ impl TInstruction for Jmp {
     }
 }
 
+impl InstructionOps for Jmp {
+    fn exec(&self, interpreter: &mut Interpreter) {
+        interpreter.pc += self.jump;
+    }
+}
+
 
 // 36: CALL     A B C   R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1))
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Call { pub a: Reg, pub b: Reg, pub c: Reg }
 
-impl TInstruction for Call {
-    fn exec(&self, _: &mut Interpreter) {}
+impl LoadInstruction for Call {
     fn load(d: u32) -> Self {
         let (a, b, c) = parse_A_B_C(d);
         Call {
@@ -290,8 +292,7 @@ impl TInstruction for Call {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Return { pub a: Reg, pub b: Reg }
 
-impl TInstruction for Return {
-    fn exec(&self, _: &mut Interpreter) {}
+impl LoadInstruction for Return {
     fn load(d: u32) -> Self {
         let (a, b) = parse_A_B(d);
         Return {

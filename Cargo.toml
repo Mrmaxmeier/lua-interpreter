@@ -5,3 +5,4 @@ version = "0.1.0"
 
 [dependencies]
 byteorder = "0.5.3"
+regex = "0.1.73"
