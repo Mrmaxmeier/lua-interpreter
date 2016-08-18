@@ -1,4 +1,6 @@
 #![feature(box_syntax)]
+#![feature(test)]
+extern crate test;
 
 extern crate byteorder;
 

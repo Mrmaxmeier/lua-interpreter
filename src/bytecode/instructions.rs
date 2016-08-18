@@ -4,7 +4,7 @@ use bytecode::interpreter::Interpreter;
 use byteorder;
 
 pub trait TInstruction: Sized {
-    fn step(&self, &mut Interpreter);
+    fn exec(&self, &mut Interpreter);
     fn load(u32) -> Self;
 }
 
@@ -16,8 +16,18 @@ pub enum Instruction {
     LOADBOOL(LoadBool),
     LOADNIL(LoadNil),
     GETTABUP(GetTabUp),
+    JMP(Jmp),
     CALL(Call),
     RETURN(Return),
+}
+
+impl Instruction {
+    pub fn exec(&self, i: &mut Interpreter) {
+        match self {
+            &Instruction::JMP(ref v) => v.exec(i),
+            v => panic!("exec not implemented for {:?}", v) 
+        }
+    }
 }
 
 
@@ -34,7 +44,9 @@ impl Parsable for Instruction {
             04 => Instruction::LOADNIL(LoadNil::load(data)),
             // TODO: 5 GETUPVAL
             06 => Instruction::GETTABUP(GetTabUp::load(data)),
-            // TODO: 7 - 37
+            // TODO: 7 - 29
+            30 => Instruction::JMP(Jmp::load(data)),
+            // TODO: 31 - 36
             36 => Instruction::CALL(Call::load(data)),
             // TODO: 37 TAILCALL
             38 => Instruction::RETURN(Return::load(data)),
@@ -59,6 +71,21 @@ fn parse_A_Bx(d: u32) -> (Reg, Reg) {
     (a as Reg, b as Reg)
 }
 
+// Field sBx can represent negative numbers, but it doesn’t use 2s complement.
+// Instead, it has a bias equal to half the maximum integer that can be represented by its unsigned counterpart, Bx.
+// For a field size of 18 bits, Bx can hold a maximum unsigned integer value of 262143, and so the bias is 131071 (calculated as 262143 >> 1).
+// A value of -1 will be encoded as (-1 + 131071) or 131070 or 1FFFE in hexadecimal.
+#[allow(non_snake_case)]
+fn parse_A_sBx(d: u32) -> (Reg, isize) {
+    let a = (d >> 6) & 0xFF;
+    let b = d >> (6 + 8);
+
+    let b_bits = 32 - (6 + 8);
+    let b_bias = (1 << (b_bits - 1)) - 1;
+    let sBx = b as isize - b_bias;
+    (a as Reg, sBx)
+}
+
 #[allow(non_snake_case)]
 fn parse_A_B_C(d: u32) -> (Reg, Reg, Reg) {
     let a = (d >> 6) & 0xFF;
@@ -71,69 +98,69 @@ fn parse_A_B_C(d: u32) -> (Reg, Reg, Reg) {
 // /*-------------------------------------------------------------------
 // name         args    description
 // ---------------------------------------------------------------------*/
-// MOVE,/*      A B     R(A) := R(B)                                    */
-// LOADK,/*     A Bx    R(A) := Kst(Bx)                                 */
-// LOADKX,/*    A       R(A) := Kst(extra arg)                          */
-// LOADBOOL,/*  A B C   R(A) := (Bool)B; if (C) pc++                    */
-// LOADNIL,/*   A B     R(A), R(A+1), ..., R(A+B) := nil                */
-// GETUPVAL,/*  A B     R(A) := UpValue[B]                              */
+// MOVE,        A B     R(A) := R(B)                                    00
+// LOADK,       A Bx    R(A) := Kst(Bx)                                 01
+// LOADKX,      A       R(A) := Kst(extra arg)                          02
+// LOADBOOL,    A B C   R(A) := (Bool)B; if (C) pc++                    03
+// LOADNIL,     A B     R(A), R(A+1), ..., R(A+B) := nil                04
+// GETUPVAL,    A B     R(A) := UpValue[B]                              05
 
-// GETTABUP,/*  A B C   R(A) := UpValue[B][RK(C)]                       */
-// GETTABLE,/*  A B C   R(A) := R(B)[RK(C)]                             */
+// GETTABUP,    A B C   R(A) := UpValue[B][RK(C)]                       06
+// GETTABLE,    A B C   R(A) := R(B)[RK(C)]                             07
 
-// SETTABUP,/*  A B C   UpValue[A][RK(B)] := RK(C)                      */
-// SETUPVAL,/*  A B     UpValue[B] := R(A)                              */
-// SETTABLE,/*  A B C   R(A)[RK(B)] := RK(C)                            */
+// SETTABUP,    A B C   UpValue[A][RK(B)] := RK(C)                      08
+// SETUPVAL,    A B     UpValue[B] := R(A)                              09
+// SETTABLE,    A B C   R(A)[RK(B)] := RK(C)                            10
 
-// NEWTABLE,/*  A B C   R(A) := {} (size = B,C)                         */
+// NEWTABLE,    A B C   R(A) := {} (size = B,C)                         11
 
-// SELF,/*      A B C   R(A+1) := R(B); R(A) := R(B)[RK(C)]             */
+// SELF,        A B C   R(A+1) := R(B); R(A) := R(B)[RK(C)]             12
 
-// ADD,/*       A B C   R(A) := RK(B) + RK(C)                           */
-// SUB,/*       A B C   R(A) := RK(B) - RK(C)                           */
-// MUL,/*       A B C   R(A) := RK(B) * RK(C)                           */
-// MOD,/*       A B C   R(A) := RK(B) % RK(C)                           */
-// POW,/*       A B C   R(A) := RK(B) ^ RK(C)                           */
-// DIV,/*       A B C   R(A) := RK(B) / RK(C)                           */
-// IDIV,/*      A B C   R(A) := RK(B) // RK(C)                          */
-// BAND,/*      A B C   R(A) := RK(B) & RK(C)                           */
-// BOR,/*       A B C   R(A) := RK(B) | RK(C)                           */
-// BXOR,/*      A B C   R(A) := RK(B) ~ RK(C)                           */
-// SHL,/*       A B C   R(A) := RK(B) << RK(C)                          */
-// SHR,/*       A B C   R(A) := RK(B) >> RK(C)                          */
-// UNM,/*       A B     R(A) := -R(B)                                   */
-// BNOT,/*      A B     R(A) := ~R(B)                                   */
-// NOT,/*       A B     R(A) := not R(B)                                */
-// LEN,/*       A B     R(A) := length of R(B)                          */
+// ADD,         A B C   R(A) := RK(B) + RK(C)                           13
+// SUB,         A B C   R(A) := RK(B) - RK(C)                           14
+// MUL,         A B C   R(A) := RK(B) * RK(C)                           15
+// MOD,         A B C   R(A) := RK(B) % RK(C)                           16
+// POW,         A B C   R(A) := RK(B) ^ RK(C)                           17
+// DIV,         A B C   R(A) := RK(B) / RK(C)                           18
+// IDIV,        A B C   R(A) := RK(B) // RK(C)                          19
+// BAND,        A B C   R(A) := RK(B) & RK(C)                           20
+// BOR,         A B C   R(A) := RK(B) | RK(C)                           21
+// BXOR,        A B C   R(A) := RK(B) ~ RK(C)                           22
+// SHL,         A B C   R(A) := RK(B) << RK(C)                          23
+// SHR,         A B C   R(A) := RK(B) >> RK(C)                          24
+// UNM,         A B     R(A) := -R(B)                                   25
+// BNOT,        A B     R(A) := ~R(B)                                   26
+// NOT,         A B     R(A) := not R(B)                                27
+// LEN,         A B     R(A) := length of R(B)                          28
 
-// CONCAT,/*    A B C   R(A) := R(B).. ... ..R(C)                       */
+// CONCAT,      A B C   R(A) := R(B).. ... ..R(C)                       29
 
-// JMP,/*       A sBx   pc+=sBx; if (A) close all upvalues >= R(A - 1)  */
-// EQ,/*        A B C   if ((RK(B) == RK(C)) ~= A) then pc++            */
-// LT,/*        A B C   if ((RK(B) <  RK(C)) ~= A) then pc++            */
-// LE,/*        A B C   if ((RK(B) <= RK(C)) ~= A) then pc++            */
+// JMP,         A sBx   pc+=sBx; if (A) close all upvalues >= R(A - 1)  30
+// EQ,          A B C   if ((RK(B) == RK(C)) ~= A) then pc++            31
+// LT,          A B C   if ((RK(B) <  RK(C)) ~= A) then pc++            32
+// LE,          A B C   if ((RK(B) <= RK(C)) ~= A) then pc++            33
 
-// TEST,/*      A C     if not (R(A) <=> C) then pc++                   */
-// TESTSET,/*   A B C   if (R(B) <=> C) then R(A) := R(B) else pc++     */
+// TEST,        A C     if not (R(A) <=> C) then pc++                   34
+// TESTSET,     A B C   if (R(B) <=> C) then R(A) := R(B) else pc++     35
 
-// CALL,/*      A B C   R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1)) */
-// TAILCALL,/*  A B C   return R(A)(R(A+1), ... ,R(A+B-1))              */
-// RETURN,/*    A B     return R(A), ... ,R(A+B-2)      (see note)      */
+// CALL,        A B C   R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1)) 36
+// TAILCALL,    A B C   return R(A)(R(A+1), ... ,R(A+B-1))              37
+// RETURN,      A B     return R(A), ... ,R(A+B-2)      (see note)      38
 
-// FORLOOP,/*   A sBx   R(A)+=R(A+2);
-//                         if R(A) <?= R(A+1) then { pc+=sBx; R(A+3)=R(A) }*/
-// FORPREP,/*   A sBx   R(A)-=R(A+2); pc+=sBx                           */
+// FORLOOP,     A sBx   R(A)+=R(A+2);                                   39
+//                        if R(A) <?= R(A+1) then { pc+=sBx; R(A+3)=R(A) }
+// FORPREP,     A sBx   R(A)-=R(A+2); pc+=sBx                           40
 
-// TFORCALL,/*  A C     R(A+3), ... ,R(A+2+C) := R(A)(R(A+1), R(A+2));  */
-// TFORLOOP,/*  A sBx   if R(A+1) ~= nil then { R(A)=R(A+1); pc += sBx }*/
+// TFORCALL,    A C     R(A+3), ... ,R(A+2+C) := R(A)(R(A+1), R(A+2));  41
+// TFORLOOP,    A sBx  if R(A+1) ~= nil then { R(A)=R(A+1); pc += sBx } 42
 
-// SETLIST,/*   A B C   R(A)[(C-1)*FPF+i] := R(A+i), 1 <= i <= B        */
+// SETLIST,     A B C   R(A)[(C-1)*FPF+i] := R(A+i), 1 <= i <= B        43
 
-// CLOSURE,/*   A Bx    R(A) := closure(KPROTO[Bx])                     */
+// CLOSURE,     A Bx    R(A) := closure(KPROTO[Bx])                     44
 
-// VARARG,/*    A B     R(A), R(A+1), ..., R(A+B-2) = vararg            */
+// VARARG,      A B     R(A), R(A+1), ..., R(A+B-2) = vararg            45
 
-// EXTRAARG/*   Ax      extra (larger) argument for previous opcode     */
+// EXTRAARG     Ax      extra (larger) argument for previous opcode     46
 
 type Reg = isize;
 
@@ -142,7 +169,7 @@ type Reg = isize;
 pub struct Move { pub to: Reg, pub from: Reg }
 
 impl TInstruction for Move {
-    fn step(&self, _: &mut Interpreter) {}
+    fn exec(&self, _: &mut Interpreter) {}
     fn load(d: u32) -> Self {
         let (to, from) = parse_A_B(d);
         Move {
@@ -157,7 +184,7 @@ impl TInstruction for Move {
 pub struct LoadK { pub local: Reg, pub constant: Reg }
 
 impl TInstruction for LoadK {
-    fn step(&self, _: &mut Interpreter) {}
+    fn exec(&self, _: &mut Interpreter) {}
     fn load(d: u32) -> Self {
         let (a, b) = parse_A_Bx(d);
         LoadK {
@@ -170,16 +197,16 @@ impl TInstruction for LoadK {
 
 // 03: LOADBOOL     A B C       R(A) := (Bool)B; if (C) pc++
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct LoadBool { pub a: Reg, pub b: Reg, pub c: Reg }
+pub struct LoadBool { pub reg: Reg, pub value: bool, pub jump: bool }
 
 impl TInstruction for LoadBool {
-    fn step(&self, _: &mut Interpreter) {}
+    fn exec(&self, _: &mut Interpreter) {}
     fn load(d: u32) -> Self {
         let (a, b, c) = parse_A_B_C(d);
         LoadBool {
-            a: a,
-            b: b,
-            c: c,
+            reg: a,
+            value: b > 0,
+            jump: c > 0,
         }
     }
 }
@@ -190,7 +217,7 @@ impl TInstruction for LoadBool {
 pub struct LoadNil { pub a: Reg, pub b: Reg }
 
 impl TInstruction for LoadNil {
-    fn step(&self, _: &mut Interpreter) {}
+    fn exec(&self, _: &mut Interpreter) {}
     fn load(d: u32) -> Self {
         let (a, b) = parse_A_Bx(d);
         LoadNil {
@@ -205,7 +232,7 @@ impl TInstruction for LoadNil {
 pub struct GetTabUp { pub a: Reg, pub b: Reg, pub c: Reg }
 
 impl TInstruction for GetTabUp {
-    fn step(&self, _: &mut Interpreter) {}
+    fn exec(&self, _: &mut Interpreter) {}
     fn load(d: u32) -> Self {
         let (a, b, c) = parse_A_B_C(d);
         GetTabUp {
@@ -216,13 +243,30 @@ impl TInstruction for GetTabUp {
     }
 }
 
+// 30: JMP      A sBx   pc += sBx; if (A) close all upvalues >= R(A - 1)
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Jmp { pub a: Reg, pub jump: isize }
+
+impl TInstruction for Jmp {
+    fn exec(&self, interpreter: &mut Interpreter) {
+        interpreter.pc += self.jump;
+    }
+    fn load(d: u32) -> Self {
+        let (a, b) = parse_A_sBx(d);
+        Jmp {
+            a: a,
+            jump: b,
+        }
+    }
+}
+
 
 // 36: CALL     A B C   R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1))
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Call { pub a: Reg, pub b: Reg, pub c: Reg }
 
 impl TInstruction for Call {
-    fn step(&self, _: &mut Interpreter) {}
+    fn exec(&self, _: &mut Interpreter) {}
     fn load(d: u32) -> Self {
         let (a, b, c) = parse_A_B_C(d);
         Call {
@@ -239,7 +283,7 @@ impl TInstruction for Call {
 pub struct Return { pub a: Reg, pub b: Reg }
 
 impl TInstruction for Return {
-    fn step(&self, _: &mut Interpreter) {}
+    fn exec(&self, _: &mut Interpreter) {}
     fn load(d: u32) -> Self {
         let (a, b) = parse_A_B(d);
         Return {

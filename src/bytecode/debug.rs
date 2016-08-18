@@ -64,16 +64,3 @@ impl Parsable for Debug {
         }
     }
 }
-
-/*
-named!(pub parse_debug<Debug>, chain!(
-    n_lineinfo: parse_int ~
-    lineinfo: count!(take!(1), n_lineinfo as usize),
-    || { Debug {
-        line_info: (),
-        locals: (),
-        upvalues: (),
-    }}
-));
-TODO: reimpl parse_debug
-*/

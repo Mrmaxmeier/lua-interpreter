@@ -59,7 +59,6 @@ _____________________________________300".to_owned()
         ]);
     }
 
-    #[ignore]
     #[test]
     fn parses_gcd() {
         let data = include_bytes!("../../fixtures/gcd");
@@ -76,8 +75,6 @@ _____________________________________300".to_owned()
             box Type::String("print".into()),
             box Type::String("value".into())
         ]);
-        // TODO: check instructions
-        // assert_eq!(result.instructions, vec![]);
     }
 
     #[test]

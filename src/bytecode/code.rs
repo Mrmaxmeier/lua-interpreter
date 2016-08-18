@@ -10,14 +10,3 @@ impl Parsable for Code {
         (0..size).map(|_| box Instruction::parse(r)).collect()
     }
 }
-
-/*
-named!(pub parse_code<Code>, chain!(
-    size: parse_int ~
-    instructions: count!(call!(
-        parse_instruction
-    ), size as usize),
-    || { instructions }
-));
-TODO: reimpl parse_code
-*/
