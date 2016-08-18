@@ -5,23 +5,23 @@ use bytecode::upvalues::Upvalues;
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct Local {
     varname: String,
-    startpc: Integer,
-    endpc: Integer,
+    startpc: u32,
+    endpc: u32,
 }
 
 impl Parsable for Local {
     fn parse<R: Read + Sized>(r: &mut R) -> Self {
         Local {
             varname: String::parse(r),
-            startpc: Integer::parse(r),
-            endpc: Integer::parse(r),
+            startpc: u32::parse(r),
+            endpc: u32::parse(r),
         }
     }
 }
 
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct DebugData {
-    pub line_info: Vec<Integer>,
+    pub line_info: Vec<u32>,
     pub locals: Vec<Local>,
     pub upvalue_names: Vec<String>,
 }
@@ -38,17 +38,17 @@ pub type Debug = Option<DebugData>;
 
 impl Parsable for Debug {
     fn parse<R: Read + Sized>(r: &mut R) -> Self {
-        let len_lineinfo = Integer::parse(r);
+        let len_lineinfo = u32::parse(r);
         let line_info = (0..len_lineinfo)
-            .map(|_| Integer::parse(r))
+            .map(|_| u32::parse(r))
             .collect();
 
-        let len_locals = Integer::parse(r);
+        let len_locals = u32::parse(r);
         let locals = (0..len_locals)
             .map(|_| Local::parse(r))
             .collect();
 
-        let len_upvalues = Integer::parse(r);
+        let len_upvalues = u32::parse(r);
         let upvalues = (0..len_upvalues)
             .map(|_| String::parse(r))
             .collect();

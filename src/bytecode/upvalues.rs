@@ -22,7 +22,7 @@ pub type Upvalues = Vec<Upvalue>;
 
 impl Parsable for Upvalues {
     fn parse<R: Read + Sized>(r: &mut R) -> Self {
-        let amount = Integer::parse(r);
+        let amount = u32::parse(r);
         (0..amount).map(|_| Upvalue::parse(r)).collect()
     }
 }

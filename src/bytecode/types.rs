@@ -20,11 +20,7 @@ impl Parsable for Box<Type> {
             },
             2 => panic!("LUA_TLIGHTUSERDATA is not yet implemented"),
             LUA_TNUMFLT => box Type::Number(Number::Float(Float::parse(r))),
-            LUA_TNUMINT => {
-                // TODO: cleanup this major wierdness
-                let n = i64::parse(r);
-                box Type::Number(Number::Integer(n as Integer))
-            },
+            LUA_TNUMINT => box Type::Number(Number::Integer(Integer::parse(r))),
             LUA_TSHRSTR | LUA_TLNGSTR => match r.parse_lua_string() {
                 None => box Type::Nil,
                 Some(string) => box Type::String(string),

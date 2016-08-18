@@ -1,9 +1,8 @@
 use bytecode::parser::*;
-use byteorder;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Header {
-    version: (u8, u8),
+    pub version: (u8, u8),
     format_version: u8,
     size_of_int: u8,
     size_of_size_t: u8,
@@ -44,7 +43,7 @@ impl Parsable for Header {
         r.assert_byte(h.size_of_integer);
         r.assert_byte(h.size_of_number);
 
-        assert_eq!(r.read_i64::<byteorder::LittleEndian>().unwrap(), LUAC_INT as i64);
+        assert_eq!(Integer::parse(r), LUAC_INT);
         assert!((Float::parse(r) - LUAC_NUM).abs() < ::std::f64::EPSILON);
 
         h

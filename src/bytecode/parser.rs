@@ -33,6 +33,12 @@ impl Parsable for i32 {
     }
 }
 
+impl Parsable for u32 {
+    fn parse<R: Read + Sized>(r: &mut R) -> Self {
+        r.read_u32::<byteorder::LittleEndian>().unwrap()
+    }
+}
+
 impl Parsable for i64 {
     fn parse<R: Read + Sized>(r: &mut R) -> Self {
         r.read_i64::<byteorder::LittleEndian>().unwrap()
@@ -45,7 +51,7 @@ impl Parsable for f64 {
     }
 }
 
-pub type Integer = i32;
+pub type Integer = i64;
 pub type Float = f64;
 
 pub trait ReadExt: Read + Sized {
@@ -76,7 +82,7 @@ pub trait ReadExt: Read + Sized {
         let len = match self.read_byte() {
             0x00 => return None,
             0xFF => {
-                let n = Integer::parse(self) as usize;
+                let n = u32::parse(self) as usize;
                 println!("parsing long string ({}) due to 0xFF", n);
                 n
             },

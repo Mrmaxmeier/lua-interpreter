@@ -21,12 +21,20 @@ pub enum Instruction {
     RETURN(Return),
 }
 
+macro_rules! match_trait_impl {
+    ( $this:expr, [$( $x:path ),*] => $meth:ident($arg:expr) ) => {
+        match $this {
+            $( &$x(ref v) => v.$meth($arg), )*
+            v => panic!("{:?} not implemented for {:?}", stringify!($meth), v) 
+        }
+    };
+}
+
 impl Instruction {
     pub fn exec(&self, i: &mut Interpreter) {
-        match self {
-            &Instruction::JMP(ref v) => v.exec(i),
-            v => panic!("exec not implemented for {:?}", v) 
-        }
+        match_trait_impl!(self, [
+            Instruction::JMP
+        ] => exec(i));
     }
 }
 

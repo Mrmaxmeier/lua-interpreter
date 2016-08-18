@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Number {
-    Integer(i32),
+    Integer(i64),
     Float(f64),
 }
 

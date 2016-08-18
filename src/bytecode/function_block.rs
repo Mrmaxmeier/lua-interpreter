@@ -33,7 +33,7 @@ impl Parsable for FunctionBlock {
     fn parse<R: Read + Sized>(r: &mut R) -> Self {
         let source_name = r.parse_lua_string();
         println!("source_name: {:?}", source_name);
-        let lines = (Integer::parse(r) as usize, Integer::parse(r) as usize);
+        let lines = (u32::parse(r) as usize, u32::parse(r) as usize);
         let params = u8::parse(r);
         r.assert_byte(2); // is_vararg
         let stack_size = u8::parse(r);
@@ -45,7 +45,7 @@ impl Parsable for FunctionBlock {
         println!("constants {:#?}", constants);
         let mut upvalues = Upvalues::parse(r);
         println!("upvalues {:#?}", upvalues);
-        let len_protos = Integer::parse(r);
+        let len_protos = u32::parse(r);
         println!("parsing {} protos (subblocks)", len_protos);
         let mut protos = (0..len_protos)
             .map(|_| FunctionBlock::parse(r))
