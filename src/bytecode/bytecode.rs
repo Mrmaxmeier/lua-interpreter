@@ -1,5 +1,6 @@
 use bytecode::header::Header;
 use bytecode::function_block::FunctionBlock;
+use bytecode::instructions::InstructionContext;
 use bytecode::parser::*;
 use std::io::Write;
 
@@ -30,7 +31,12 @@ impl Bytecode {
                 let padding = ::std::iter::repeat(' ')
                     .take(max_length - debug_fmt.len())
                     .collect::<String>();
-                let debug_info = instr.as_ops().debug_info(&self.func, debug).join(", ");
+                let context = InstructionContext {
+                    index: i,
+                    debug: debug,
+                    func: &self.func,
+                };
+                let debug_info = instr.as_ops().debug_info(context).join(", ");
                 writeln!(w, "\t{}\t{}{}\t; {}", i + 1, debug_fmt, padding, debug_info)?;
             }
         } else {
@@ -76,6 +82,12 @@ mod tests {
     #[test]
     fn parses_assignment() {
         let data = include_bytes!("../../fixtures/assignment");
+        Bytecode::parse(&mut Cursor::new(data.to_vec()));
+    }
+
+    #[test]
+    fn parses_if_conditions() {
+        let data = include_bytes!("../../fixtures/if_conditions");
         Bytecode::parse(&mut Cursor::new(data.to_vec()));
     }
 
@@ -159,6 +171,19 @@ _____________________________________300".to_owned()
             .collect()
     }
 
+    fn assert_multiline_eq(a: Vec<String>, b: Vec<String>) {
+        for (line_r, line_e) in a.iter().zip(&b) {
+            if line_r != line_e {
+                println!("result:   {}", line_r);
+                println!("expected: {}", line_e);
+                println!("result:   {:?}", line_r);
+                println!("expected: {:?}", line_e);
+            }
+            assert_eq!(line_r, line_e);
+        }
+        assert_eq!(a.len(), b.len(), "line count mismatch");
+    }
+
     #[test]
     fn pretty_prints_a_bunch_of_constants() {
         let data = include_bytes!("../../fixtures/a_bunch_of_constants");
@@ -172,13 +197,13 @@ _____________________________________300".to_owned()
 main <@a_bunch_of_constants.lua> Lua (5, 3)
 
 [7 instructions]
-\t  1\t LoadNil { start: 0, range: 0 }               \t ; 0 = a
-\t  2\t LoadBool { reg: 0, value: false, jump: true }\t ; 0 = a
-\t  3\t LoadK { local: 0, constant: 0 }              \t ; 0 = a, 0 = 42
-\t  4\t LoadK { local: 0, constant: 1 }              \t ; 0 = a, 1 = -0.08333333333
-\t  5\t LoadK { local: 0, constant: 2 }              \t ; 0 = a, 2 = "TSHRSTR"
-\t  6\t LoadK { local: 0, constant: 3 }              \t ; 0 = a, 3 = "TLNGSTR"
-\t  7\t Return { a: 0, b: 0 }                        \t ; return to top
+\t  1\t LoadNil { start: 0, range: 0 }                \t ; 0 = a
+\t  2\t LoadBool { reg: 0, value: false, jump: false }\t ; 0 = a
+\t  3\t LoadK { local: 0, constant: 0 }               \t ; 0 = a, 0 = 42
+\t  4\t LoadK { local: 0, constant: 1 }               \t ; 0 = a, 1 = -0.08333333333
+\t  5\t LoadK { local: 0, constant: 2 }               \t ; 0 = a, 2 = "TSHRSTR"
+\t  6\t LoadK { local: 0, constant: 3 }               \t ; 0 = a, 3 = "TLNGSTR"
+\t  7\t Return { a: 0, b: 0 }                         \t ; return to top
 
 [4 constants]
 \t  1\t  42
@@ -190,15 +215,31 @@ main <@a_bunch_of_constants.lua> Lua (5, 3)
 \t  1\t  Local { varname: "a", startpc: 1, endpc: 7 }
 
 "#);
-        for (line_r, line_e) in pprint_result.lines().zip(&expected_lines) {
-            if line_r != line_e {
-                println!("result:   {}", line_r);
-                println!("expected: {}", line_e);
-                println!("result:   {:?}", line_r);
-                println!("expected: {:?}", line_e);
-            }
-            assert_eq!(line_r, line_e);
-        }
-        assert_eq!(pprint_result.lines().count(), expected_lines.len(), "line count mismatch");
+        let result_lines = pprint_result.lines()
+            .map(|s| s.to_owned())
+            .collect();
+        assert_multiline_eq(result_lines, expected_lines);
+    }
+
+    #[test]
+    fn pretty_if_conditions() {
+        let data = include_bytes!("../../fixtures/if_conditions");
+        let result = Bytecode::parse(&mut Cursor::new(data.to_vec()));
+        let mut stream = Cursor::new(Vec::new());
+        result.pretty_print(&mut stream).unwrap();
+        let pprint_result: String = String::from_utf8(stream.into_inner()).unwrap();
+        println!("\n\n{}\n", pprint_result);
+        let expected_lines = sanitized(r#"
+main <@if_conditions.lua> Lua (5, 3)
+
+[18 instructions]
+\t  1\t GetTabUp { a: 0, b: 0, c: 1 }                 \t ; 0 = _ENV, 1 = "print"
+\t  2\t LoadK { local: 1, constant: 1 }               \t ; 1 = "true is truthy"
+
+"#);
+        let result_lines = pprint_result.lines()
+            .map(|s| s.to_owned())
+            .collect();
+        assert_multiline_eq(result_lines, expected_lines);
     }
 }

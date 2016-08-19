@@ -12,7 +12,7 @@ pub trait LoadInstruction: Sized {
 
 pub trait InstructionOps: fmt::Debug {
     fn exec(&self, _: &mut Interpreter) { unimplemented!() } // TODO: remove impl
-    fn debug_info(&self, &FunctionBlock, &DebugData) -> Vec<String> { vec![] }
+    fn debug_info(&self, InstructionContext) -> Vec<String> { vec![] }
 }
 
 
@@ -24,6 +24,7 @@ pub enum Instruction {
     LOADNIL(LoadNil),
     GETTABUP(GetTabUp),
     JMP(Jmp),
+    TEST(Test),
     CALL(Call),
     RETURN(Return),
 }
@@ -43,7 +44,10 @@ impl Instruction {
             Instruction::LOADK,
             Instruction::LOADBOOL,
             Instruction::LOADNIL,
+            Instruction::GETTABUP,
             Instruction::JMP,
+            Instruction::TEST,
+            Instruction::CALL,
             Instruction::RETURN
         ] => as &InstructionOps)
     }
@@ -68,7 +72,9 @@ impl Parsable for Instruction {
             06 => Instruction::GETTABUP(GetTabUp::load(data)),
             // TODO: 7 - 29
             30 => Instruction::JMP(Jmp::load(data)),
-            // TODO: 31 - 36
+            // TODO: 31 - 33
+            34 => Instruction::TEST(Test::load(data)),
+            // TODO: 35 TESTSET
             36 => Instruction::CALL(Call::load(data)),
             // TODO: 37 TAILCALL
             38 => Instruction::RETURN(Return::load(data)),
@@ -111,9 +117,45 @@ fn parse_A_sBx(d: u32) -> (Reg, isize) {
 #[allow(non_snake_case)]
 fn parse_A_B_C(d: u32) -> (Reg, Reg, Reg) {
     let a = (d >> 6) & 0xFF;
-    let b = (d >> (6 + 8)) & 0xFF;
-    let c = (d >> (6 + 8 * 2)) & 0xFF;
+    let b = (d >> (6 + 9)) & 0xFF;
+    let c = (d >> (6 + 9 * 2)) & 0xFF;
     (a as Reg, b as Reg, c as Reg)
+}
+
+pub struct InstructionContext<'a> {
+    pub index: usize,
+    pub func: &'a FunctionBlock,
+    pub debug: &'a DebugData,
+}
+
+fn _reg_as_option_usize(n: Reg) -> Option<usize> {
+    if n.is_positive() {
+        Some(n as usize)
+    } else {
+        None
+    }
+}
+
+impl<'a> InstructionContext<'a> {
+    fn filter(&self, d: Vec<Option<String>>) -> Vec<String> {
+        d.iter().filter_map(|i| i.clone()).collect()
+    }
+
+    fn constant(&self, c: Reg) -> Option<String> {
+        (if c > 0xFF {
+            Some((c & 0xFF) as usize)
+        } else {
+            None
+        })
+            .map(|i| &self.func.constants[i])
+            .map(|constant| format!("{} = {}", c, constant))
+    }
+
+    fn upval(&self, u: Reg) -> Option<String> {
+        Some(u as usize)
+            .map(|i| &self.debug.upvalue_names[i])
+            .map(|name| format!("{} = {}", u, name))
+    }
 }
 
 
@@ -215,11 +257,16 @@ impl LoadInstruction for LoadK {
 }
 
 impl InstructionOps for LoadK {
-    fn debug_info(&self, f: &FunctionBlock, d: &DebugData) -> Vec<String> {
-        vec![
-            format!("{} = {}", self.local, d.locals[self.local as usize]),
-            format!("{} = {}", self.constant, f.constants[self.constant as usize])
-        ]
+    fn debug_info(&self, c: InstructionContext) -> Vec<String> {
+        let const_s = format!("{} = {}", self.constant, c.func.constants[self.constant as usize]);
+        if let Some(local) = c.debug.locals.get(self.local as usize) {
+            vec![
+                format!("{} = {}", self.local, local),
+                const_s,
+            ]
+        } else {
+            vec![const_s]
+        }
     }
 }
 
@@ -240,10 +287,14 @@ impl LoadInstruction for LoadBool {
 }
 
 impl InstructionOps for LoadBool {
-    fn debug_info(&self, _: &FunctionBlock, d: &DebugData) -> Vec<String> {
-        vec![
-            format!("{} = {}", self.reg, d.locals[self.reg as usize])
-        ]
+    fn debug_info(&self, c: InstructionContext) -> Vec<String> {
+        if let Some(local) = c.debug.locals.get(self.reg as usize) {
+            vec![
+                format!("{} = {}", self.reg, local),
+            ]
+        } else {
+            vec![]
+        }
     }
 }
 
@@ -263,25 +314,36 @@ impl LoadInstruction for LoadNil {
 }
 
 impl InstructionOps for LoadNil {
-    fn debug_info(&self, _: &FunctionBlock, d: &DebugData) -> Vec<String> {
+    fn debug_info(&self, c: InstructionContext) -> Vec<String> {
         let start = self.start as usize;
         let end = start + self.range + 1;
-        (start..end).map(|i| format!("{} = {}", i, d.locals[i])).collect()
+        (start..end).map(|i| format!("{} = {}", i, c.debug.locals[i])).collect()
     }
 }
 
 // 06: GETTABUP   A B C   R(A) := UpValue[B][RK(C)]
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct GetTabUp { pub a: Reg, pub b: Reg, pub c: Reg }
+pub struct GetTabUp { pub reg: Reg, pub upvalue: Reg, pub constant: Reg }
 
 impl LoadInstruction for GetTabUp {
     fn load(d: u32) -> Self {
         let (a, b, c) = parse_A_B_C(d);
         GetTabUp {
-            a: a,
-            b: b,
-            c: c,
+            reg: a,
+            upvalue: b,
+            constant: c,
         }
+    }
+}
+
+impl InstructionOps for GetTabUp {
+    fn debug_info(&self, c: InstructionContext) -> Vec<String> {
+        c.filter(vec![
+            // TODO: reg as local
+            None,
+            c.upval(self.upvalue),
+            c.constant(self.constant),
+        ])
     }
 }
 
@@ -303,8 +365,39 @@ impl InstructionOps for Jmp {
     fn exec(&self, interpreter: &mut Interpreter) {
         interpreter.pc += self.jump;
     }
+
+    fn debug_info(&self, c: InstructionContext) -> Vec<String> {
+        vec![
+            format!("to [{}]", c.index as isize + self.jump)
+        ]
+    }
 }
 
+
+// 34: TEST     A C     if not (R(A) <=> C) then pc+
+// For the fall-through case, a JMP is always expected, in order to optimize execution in the virtual machine.
+// In effect, TEST and TESTSET must always be paired with a following JMP instruction.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Test { pub a: Reg, pub jump: isize }
+
+impl LoadInstruction for Test {
+    fn load(d: u32) -> Self {
+        // TODO
+        let (a, b, c) = parse_A_B_C(d);
+        Test {
+            a: a,
+            jump: b,
+        }
+    }
+}
+
+impl InstructionOps for Test {
+    fn exec(&self, interpreter: &mut Interpreter) {
+        if !(1 == 1) {
+            interpreter.pc += 1;
+        }
+    }
+}
 
 // 36: CALL     A B C   R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1))
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -320,6 +413,8 @@ impl LoadInstruction for Call {
         }
     }
 }
+
+impl InstructionOps for Call {}
 
 // 38: RETURN   A B     return R(A), ... ,R(A+B-2)
 // if (B == 0) then return up to 'top'.
@@ -344,13 +439,13 @@ impl LoadInstruction for Return {
 }
 
 impl InstructionOps for Return {
-    fn debug_info(&self, _: &FunctionBlock, _: &DebugData) -> Vec<String> {
+    fn debug_info(&self, _: InstructionContext) -> Vec<String> {
         if self.b == 0 {
             vec!["return to top".to_owned()]
         } else if self.b == 1 {
             vec!["no return values".to_owned()]
         } else {
-            vec![]
+            unimplemented!()
         }
     }
 }
@@ -369,5 +464,13 @@ mod tests {
         let mut reader = Cursor::new(data);
         let instruction = Instruction::parse(&mut reader);
         assert_eq!(instruction, Instruction::RETURN(Return {a: 0, b: 0}));
+    }
+
+    #[test]
+    fn parses_gettabup() {
+        let data = &[0b00000110, 0b00000000, 0b01000000, 0];
+        let mut reader = Cursor::new(data);
+        let instruction = Instruction::parse(&mut reader);
+        assert_eq!(instruction, Instruction::GETTABUP(GetTabUp { reg: 0, upvalue: 0, constant: -1 }));
     }
 }

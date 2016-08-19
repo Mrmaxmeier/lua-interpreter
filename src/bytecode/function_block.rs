@@ -55,6 +55,7 @@ impl Parsable for FunctionBlock {
         }
         let debug = Debug::parse(r);
         if let Some(ref debug_data) = debug {
+            println!("debug: {:#?}", debug_data);
             debug_data.update_upvalues(&mut upvalues);
         }
 
