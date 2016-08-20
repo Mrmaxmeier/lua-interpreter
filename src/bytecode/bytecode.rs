@@ -1,6 +1,5 @@
 use bytecode::header::Header;
 use bytecode::function_block::FunctionBlock;
-use bytecode::instructions::InstructionContext;
 use bytecode::parser::*;
 use std::io::Write;
 
@@ -17,44 +16,7 @@ impl Bytecode {
             write!(w, "main <{}> ", name)?;
         }
         writeln!(w, "Lua {:?}", self.header.version)?;
-        writeln!(w, "\n[{} instructions]", self.func.instructions.len())?;
-        if let Some(ref debug) = self.func.debug {
-            let debug_fmts: Vec<String> = self.func.instructions.iter()
-                .map(|instr| format!("{:?}", instr.as_ops()))
-                .collect();
-            let max_length = debug_fmts.iter()
-                .map(|s| s.len())
-                .max()
-                .unwrap();
-            for (i, instr) in self.func.instructions.iter().enumerate() {
-                let debug_fmt = format!("{:?}", instr.as_ops());
-                let padding = ::std::iter::repeat(' ')
-                    .take(max_length - debug_fmt.len())
-                    .collect::<String>();
-                let context = InstructionContext {
-                    index: i,
-                    debug: debug,
-                    func: &self.func,
-                };
-                let debug_info = instr.as_ops().debug_info(context).join(", ");
-                writeln!(w, "\t{}\t{}{}\t; {}", i + 1, debug_fmt, padding, debug_info)?;
-            }
-        } else {
-            for (i, instr) in self.func.instructions.iter().enumerate() {
-                writeln!(w, "\t{}\t{:?}", i + 1, instr.as_ops())?;
-            }
-        }
-        writeln!(w, "\n[{} constants]", self.func.constants.len())?;
-        for (i, constant) in self.func.constants.iter().enumerate() {
-            writeln!(w, "\t{}\t{}", i + 1, constant)?;
-        };
-        if let Some(ref debug) = self.func.debug {
-            writeln!(w, "\n[{} locals]", debug.locals.len())?;
-            for (i, local) in debug.locals.iter().enumerate() {
-                writeln!(w, "\t{}\t{:?}", i + 1, local)?;
-            };
-        }
-        Ok(())
+        self.func.pretty_print(w)
     }
 }
 
@@ -197,13 +159,13 @@ _____________________________________300".to_owned()
 main <@a_bunch_of_constants.lua> Lua (5, 3)
 
 [7 instructions]
-\t  1\t LoadNil { start: 0, range: 0 }                \t ; 0 = a
-\t  2\t LoadBool { reg: 0, value: false, jump: false }\t ; 0 = a
-\t  3\t LoadK { local: 0, constant: 0 }               \t ; 0 = a, 0 = 42
-\t  4\t LoadK { local: 0, constant: 1 }               \t ; 0 = a, 1 = -0.08333333333
-\t  5\t LoadK { local: 0, constant: 2 }               \t ; 0 = a, 2 = "TSHRSTR"
-\t  6\t LoadK { local: 0, constant: 3 }               \t ; 0 = a, 3 = "TLNGSTR"
-\t  7\t Return { a: 0, b: 0 }                         \t ; return to top
+\t  1\t LoadNil { start: 0, range: 0 }               \t ; 0 = a
+\t  2\t LoadBool { reg: 0, value: true, jump: false }\t ; 0 = a
+\t  3\t LoadK { local: 0, constant: 0 }              \t ; 0 = a, 0 = 42
+\t  4\t LoadK { local: 0, constant: 1 }              \t ; 0 = a, 1 = -0.08333333333
+\t  5\t LoadK { local: 0, constant: 2 }              \t ; 0 = a, 2 = "TSHRSTR"
+\t  6\t LoadK { local: 0, constant: 3 }              \t ; 0 = a, 3 = "TLNGSTR"
+\t  7\t Return { a: 0, b: 0 }                        \t ; return to top
 
 [4 constants]
 \t  1\t  42
@@ -233,8 +195,8 @@ main <@a_bunch_of_constants.lua> Lua (5, 3)
 main <@if_conditions.lua> Lua (5, 3)
 
 [18 instructions]
-\t  1\t GetTabUp { a: 0, b: 0, c: 1 }                 \t ; 0 = _ENV, 1 = "print"
-\t  2\t LoadK { local: 1, constant: 1 }               \t ; 1 = "true is truthy"
+\t  1\t GetTabUp { reg: 0, upvalue: 0, constant: Constant(0) }\t ; 0 = _ENV, 0 = "print"
+\t  2\t LoadK { local: 1, constant: 1 }                       \t ; 1 = "true is truthy"
 
 "#);
         let result_lines = pprint_result.lines()

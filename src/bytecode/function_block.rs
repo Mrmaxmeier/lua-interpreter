@@ -3,13 +3,13 @@ use bytecode::code::Code;
 use bytecode::constants::Constants;
 use bytecode::upvalues::Upvalues;
 use bytecode::debug::Debug;
+use bytecode::instructions::InstructionContext;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct FunctionBlock {
     pub source_name: Option<String>,
     pub lines: (usize, usize),
     pub amount_parameters: u8,
-    // is_vararg: VarArgs,
     pub stack_size: u8,
     pub instructions: Code,
     pub constants: Constants,
@@ -26,6 +26,50 @@ impl FunctionBlock {
         if self.source_name.is_none() {
             self.source_name = name;
         }
+    }
+
+    pub fn pretty_print<W: io::Write + Sized>(&self, w: &mut W) -> io::Result<()> {
+        writeln!(w, "\n[{} instructions]", self.instructions.len())?;
+        if let Some(ref debug) = self.debug {
+            let debug_fmts: Vec<String> = self.instructions.iter()
+                .map(|instr| format!("{:?}", instr.as_ops()))
+                .collect();
+            let max_length = debug_fmts.iter()
+                .map(|s| s.len())
+                .max()
+                .unwrap();
+            for (i, instr) in self.instructions.iter().enumerate() {
+                let debug_fmt = format!("{:?}", instr.as_ops());
+                let padding = ::std::iter::repeat(' ')
+                    .take(max_length - debug_fmt.len())
+                    .collect::<String>();
+                let context = InstructionContext {
+                    index: i,
+                    debug: debug,
+                    func: self,
+                };
+                let debug_info = instr.as_ops().debug_info(context).join(", ");
+                writeln!(w, "\t{}\t{}{}\t; {}", i + 1, debug_fmt, padding, debug_info)?;
+            }
+        } else {
+            for (i, instr) in self.instructions.iter().enumerate() {
+                writeln!(w, "\t{}\t{:?}", i + 1, instr.as_ops())?;
+            }
+        }
+        writeln!(w, "\n[{} constants]", self.constants.len())?;
+        for (i, constant) in self.constants.iter().enumerate() {
+            writeln!(w, "\t{}\t{}", i + 1, constant)?;
+        };
+        if let Some(ref debug) = self.debug {
+            writeln!(w, "\n[{} locals]", debug.locals.len())?;
+            for (i, local) in debug.locals.iter().enumerate() {
+                writeln!(w, "\t{}\t{:?}", i + 1, local)?;
+            };
+        };
+        for subblock in &self.protos {
+            subblock.pretty_print(w)?;
+        }
+        Ok(())
     }
 }
 
