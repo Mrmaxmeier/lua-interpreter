@@ -6,6 +6,16 @@ use bytecode::debug::DebugData;
 use byteorder;
 use std::fmt;
 
+macro_rules! on_bits {
+    ($n:expr) => (((1 << $n) - 1))
+}
+
+macro_rules! get_bits {
+    ($d:expr, $n:expr => $m:expr) => (
+        ($d >> $n) & on_bits!(($m - $n))
+    )
+}
+
 pub trait LoadInstruction: Sized {
     fn load(u32) -> Self;
 }
@@ -60,8 +70,8 @@ impl Instruction {
 impl Parsable for Instruction {
     fn parse<R: Read + Sized>(r: &mut R) -> Self {
         let data = r.read_u32::<byteorder::LittleEndian>().unwrap();
-        let opcode = data & 0b00111111;
-        println!("opcode: {:?}\tdata: {:#0b}", opcode, data);
+        let opcode = data & on_bits!(6);
+        println!("opcode: {:?}\tdata: 0b{:0>32b}", opcode, data);
         match opcode {
             00 => Instruction::MOVE(Move::load(data)),
             01 => Instruction::LOADK(LoadK::load(data)),
@@ -72,7 +82,9 @@ impl Parsable for Instruction {
             06 => Instruction::GETTABUP(GetTabUp::load(data)),
             // TODO: 7 - 29
             30 => Instruction::JMP(Jmp::load(data)),
-            // TODO: 31 - 33
+            // TODO: 31 EQ
+            // TODO: 32 LT
+            // TODO: 33 LE
             34 => Instruction::TEST(Test::load(data)),
             // TODO: 35 TESTSET
             36 => Instruction::CALL(Call::load(data)),
@@ -84,18 +96,17 @@ impl Parsable for Instruction {
     }
 }
 
-
 #[allow(non_snake_case)]
 fn parse_A_B(d: u32) -> (Reg, Reg) {
-    let a = (d >> 6) & 0xFF;
-    let b = (d >> (6 + 8)) & 0xFF;
+    let a = get_bits!(d, 6 => 14);
+    let b = get_bits!(d, 14 => 22);
     (a as Reg, b as Reg)
 }
 
 #[allow(non_snake_case)]
 fn parse_A_Bx(d: u32) -> (Reg, Reg) {
-    let a = (d >> 6) & 0xFF;
-    let b = d >> (6 + 8);
+    let a = get_bits!(d, 6 => 14);
+    let b = get_bits!(d, 14 => 32);
     (a as Reg, b as Reg)
 }
 
@@ -105,8 +116,8 @@ fn parse_A_Bx(d: u32) -> (Reg, Reg) {
 // A value of -1 will be encoded as (-1 + 131071) or 131070 or 1FFFE in hexadecimal.
 #[allow(non_snake_case)]
 fn parse_A_sBx(d: u32) -> (Reg, isize) {
-    let a = (d >> 6) & 0xFF;
-    let b = d >> (6 + 8);
+    let a = get_bits!(d, 6 => 14);
+    let b = get_bits!(d, 14 => 32);
 
     let b_bits = 32 - (6 + 8);
     let b_bias = (1 << (b_bits - 1)) - 1;
@@ -116,10 +127,27 @@ fn parse_A_sBx(d: u32) -> (Reg, isize) {
 
 #[allow(non_snake_case)]
 fn parse_A_B_C(d: u32) -> (Reg, Reg, Reg) {
-    let a = (d >> 6) & 0xFF;
-    let b = (d >> (6 + 9)) & 0xFF;
-    let c = (d >> (6 + 9 * 2)) & 0xFF;
+    let a = get_bits!(d, 6 => 14);
+    let b = get_bits!(d, 23 => 32); // WTF!?
+    let c = get_bits!(d, 14 => 23);
     (a as Reg, b as Reg, c as Reg)
+}
+
+// TODO: rename DataSource
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum DataSource {
+    Register(usize),
+    Constant(usize),
+}
+
+impl From<usize> for DataSource {
+    fn from(other: usize) -> Self {
+        if other >= 0b1_0000_0000 {
+            DataSource::Constant(other & 0xFF)
+        } else {
+            DataSource::Register(other)
+        }
+    }
 }
 
 pub struct InstructionContext<'a> {
@@ -128,36 +156,31 @@ pub struct InstructionContext<'a> {
     pub debug: &'a DebugData,
 }
 
-fn _reg_as_option_usize(n: Reg) -> Option<usize> {
-    if n.is_positive() {
-        Some(n as usize)
-    } else {
-        None
-    }
-}
-
 impl<'a> InstructionContext<'a> {
     fn filter(&self, d: Vec<Option<String>>) -> Vec<String> {
         d.iter().filter_map(|i| i.clone()).collect()
     }
 
-    fn constant(&self, c: Reg) -> Option<String> {
-        (if c > 0xFF {
-            Some((c & 0xFF) as usize)
-        } else {
-            None
+    fn pretty_constant(&self, c: DataSource) -> Option<String> {
+        (match c {
+            DataSource::Constant(v) => Some(v),
+            DataSource::Register(_) => None
         })
-            .map(|i| &self.func.constants[i])
-            .map(|constant| format!("{} = {}", c, constant))
+            .map(|i| (i, &self.func.constants[i]))
+            .map(|(i, constant)| format!("{} = {}", i, constant))
     }
 
-    fn upval(&self, u: Reg) -> Option<String> {
+    fn pretty_upval(&self, u: Reg) -> Option<String> {
         Some(u as usize)
             .map(|i| &self.debug.upvalue_names[i])
             .map(|name| format!("{} = {}", u, name))
     }
 }
 
+
+// R(x)   - register
+// Kst(x) - constant (in constant table)
+// RK(x)  - DataSource [if ISK(x) then Kst(INDEXK(x)) else R(x)]
 
 // /*-------------------------------------------------------------------
 // name         args    description
@@ -226,7 +249,7 @@ impl<'a> InstructionContext<'a> {
 
 // EXTRAARG     Ax      extra (larger) argument for previous opcode     46
 
-type Reg = isize;
+type Reg = usize;
 
 // 00: MOVE   A B   R(A) := R(B)
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -323,7 +346,7 @@ impl InstructionOps for LoadNil {
 
 // 06: GETTABUP   A B C   R(A) := UpValue[B][RK(C)]
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct GetTabUp { pub reg: Reg, pub upvalue: Reg, pub constant: Reg }
+pub struct GetTabUp { pub reg: Reg, pub upvalue: Reg, pub constant: DataSource }
 
 impl LoadInstruction for GetTabUp {
     fn load(d: u32) -> Self {
@@ -331,7 +354,7 @@ impl LoadInstruction for GetTabUp {
         GetTabUp {
             reg: a,
             upvalue: b,
-            constant: c,
+            constant: c.into(),
         }
     }
 }
@@ -341,8 +364,8 @@ impl InstructionOps for GetTabUp {
         c.filter(vec![
             // TODO: reg as local
             None,
-            c.upval(self.upvalue),
-            c.constant(self.constant),
+            c.pretty_upval(self.upvalue),
+            c.pretty_constant(self.constant),
         ])
     }
 }
@@ -378,12 +401,11 @@ impl InstructionOps for Jmp {
 // For the fall-through case, a JMP is always expected, in order to optimize execution in the virtual machine.
 // In effect, TEST and TESTSET must always be paired with a following JMP instruction.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Test { pub a: Reg, pub jump: isize }
+pub struct Test { pub a: Reg, pub jump: usize }
 
 impl LoadInstruction for Test {
     fn load(d: u32) -> Self {
-        // TODO
-        let (a, b, c) = parse_A_B_C(d);
+        let (a, b, _) = parse_A_B_C(d);
         Test {
             a: a,
             jump: b,
@@ -391,13 +413,7 @@ impl LoadInstruction for Test {
     }
 }
 
-impl InstructionOps for Test {
-    fn exec(&self, interpreter: &mut Interpreter) {
-        if !(1 == 1) {
-            interpreter.pc += 1;
-        }
-    }
-}
+impl InstructionOps for Test {}
 
 // 36: CALL     A B C   R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1))
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -459,6 +475,14 @@ mod tests {
     use bytecode::parser::Parsable;
 
     #[test]
+    fn get_bits_works() {
+        let data = 0b1111_0001_1001_1001u16;
+        assert_eq!(get_bits!(data, 0 => 6), 0b011001);
+        assert_eq!(get_bits!(data, 6 => 8), 0b10);
+        assert_eq!(get_bits!(data, 8 => 16), 0b1111_0001);
+    }
+
+    #[test]
     fn parses_return_instruction() {
         let data = &[0x26, 0x00, 0x80, 0x00];
         let mut reader = Cursor::new(data);
@@ -471,6 +495,6 @@ mod tests {
         let data = &[0b00000110, 0b00000000, 0b01000000, 0];
         let mut reader = Cursor::new(data);
         let instruction = Instruction::parse(&mut reader);
-        assert_eq!(instruction, Instruction::GETTABUP(GetTabUp { reg: 0, upvalue: 0, constant: -1 }));
+        assert_eq!(instruction, Instruction::GETTABUP(GetTabUp { reg: 0, upvalue: 0, constant: DataSource::Constant(0) }));
     }
 }
