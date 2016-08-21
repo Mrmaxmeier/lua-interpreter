@@ -98,9 +98,8 @@ impl Parsable for Instruction {
 
 #[allow(non_snake_case)]
 fn parse_A_B(d: u32) -> (Reg, Reg) {
-    let a = get_bits!(d, 6 => 14);
-    let b = get_bits!(d, 14 => 22);
-    (a as Reg, b as Reg)
+    let (a, b, _) = parse_A_B_C(d);
+    (a, b)
 }
 
 #[allow(non_snake_case)]
@@ -391,7 +390,7 @@ impl InstructionOps for Jmp {
 
     fn debug_info(&self, c: InstructionContext) -> Vec<String> {
         vec![
-            format!("to [{}]", c.index as isize + self.jump)
+            format!("to [{}]", 1 + c.index as isize + self.jump + 1)
         ]
     }
 }
