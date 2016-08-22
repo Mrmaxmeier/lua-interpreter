@@ -1,22 +1,24 @@
 use bytecode::instructions::Instruction;
+use bytecode::bytecode::Bytecode;
+use types::Type;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PC {
     _pc: usize,
-    _instructions: Vec<Box<Instruction>>,
+    _instructions: Vec<Instruction>,
 }
 
 impl PC {
-    pub fn new(instructions: Vec<Box<Instruction>>) -> Self {
+    pub fn new(instructions: Vec<Instruction>) -> Self {
         PC {
             _pc: 0,
-            _instructions: instructions
+            _instructions: instructions,
         }
     }
 }
 
 impl PC {
-    pub fn current(&self) -> &Box<Instruction> { &self[0] }
+    pub fn current(&self) -> &Instruction { &self[0] }
 }
 
 impl ::std::ops::AddAssign<isize> for PC {
@@ -26,8 +28,8 @@ impl ::std::ops::AddAssign<isize> for PC {
 }
 
 impl ::std::ops::Index<isize> for PC {
-    type Output = Box<Instruction>;
-    fn index(&self, _relative_index: isize) -> &Box<Instruction> {
+    type Output = Instruction;
+    fn index(&self, _relative_index: isize) -> &Instruction {
         let index = self._pc as isize + _relative_index;
         &self._instructions[index as usize]
     }
@@ -37,12 +39,18 @@ impl ::std::ops::Index<isize> for PC {
 #[derive(Debug, Clone)]
 pub struct Interpreter {
     pub pc: PC,
+    pub stack: Vec<Type>,
 }
 
-
 impl Interpreter {
+    pub fn new(bytecode: Bytecode) -> Self {
+        Interpreter {
+            pc: PC::new(bytecode.func.instructions),
+            stack: Vec::new(),
+        }
+    }
     pub fn step(&mut self) {
-        let instruction = self.pc.current().clone();
+        let instruction = *self.pc.current();
         // println!("{:?}", instruction);
         self.pc += 1;
         instruction.exec(self)
