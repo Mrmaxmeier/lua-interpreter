@@ -7,23 +7,23 @@ const LUA_TLNGSTR: u8 = (4 | (1 << 4));  // long strings
 const LUA_TNUMFLT: u8 = 3;               // float numbers
 const LUA_TNUMINT: u8 = (3 | (1 << 4));  // integer numbers
 
-impl Parsable for Box<Type> {
+impl Parsable for Type {
     fn parse<R: Read + Sized>(r: &mut R) -> Self {
         let kind = r.read_byte();
         println!("parsing constant: {:#X}", kind);
         match kind {
-            0 => box Type::Nil,
+            0 => Type::Nil,
             1 => match r.read_byte() {
-                0 => box Type::Boolean(false),
-                1 => box Type::Boolean(true),
+                0 => Type::Boolean(false),
+                1 => Type::Boolean(true),
                 d => panic!("invalid boolean type {}", d)
             },
             2 => panic!("LUA_TLIGHTUSERDATA is not yet implemented"),
-            LUA_TNUMFLT => box Type::Number(Number::Float(Float::parse(r))),
-            LUA_TNUMINT => box Type::Number(Number::Integer(Integer::parse(r))),
+            LUA_TNUMFLT => Type::Number(Number::Float(Float::parse(r))),
+            LUA_TNUMINT => Type::Number(Number::Integer(Integer::parse(r))),
             LUA_TSHRSTR | LUA_TLNGSTR => match r.parse_lua_string() {
-                None => box Type::Nil,
-                Some(string) => box Type::String(string),
+                None => Type::Nil,
+                Some(string) => Type::String(string),
             },
             5 => panic!("LUA_TTABLE is not yet implemented"),
             6 => panic!("LUA_TFUNCTION is not yet implemented"),

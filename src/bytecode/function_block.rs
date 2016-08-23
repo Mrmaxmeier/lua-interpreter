@@ -147,7 +147,7 @@ mod tests {
             Instruction::RETURN(instructions::Return {a: 0, b: 1}),
         ]);
         assert_eq!(result.constants, vec![
-            box Type::String("zweiundvierzig".into())
+            Type::String("zweiundvierzig".into())
         ]);
         assert_eq!(result.upvalues, vec![
             Upvalue {
