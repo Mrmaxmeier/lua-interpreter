@@ -1,8 +1,9 @@
 // http://www.lua.org/source/5.3/lopcodes.h.html
 use bytecode::parser::*;
-use bytecode::interpreter::Interpreter;
+use bytecode::interpreter::*;
 use bytecode::function_block::FunctionBlock;
 use bytecode::debug::DebugData;
+use types::Type;
 use byteorder;
 use std::fmt;
 
@@ -21,7 +22,10 @@ pub trait LoadInstruction: Sized {
 }
 
 pub trait InstructionOps: fmt::Debug {
-    fn exec(&self, _: &mut Interpreter) { unimplemented!() } // TODO: remove impl
+    fn exec(&self, _: &mut Interpreter) {
+        println!("exec not yet implemented for {:?}!", self);
+        unimplemented!()
+    } // TODO: remove impl
     fn debug_info(&self, InstructionContext) -> Vec<String> { vec![] }
 }
 
@@ -279,6 +283,11 @@ impl LoadInstruction for LoadK {
 }
 
 impl InstructionOps for LoadK {
+    fn exec(&self, interpreter: &mut Interpreter) {
+        let c = interpreter.func.constants[self.constant].clone();
+        interpreter.stack.set_r(self.local, c);
+    }
+
     fn debug_info(&self, c: InstructionContext) -> Vec<String> {
         let const_s = format!("{} = {}", self.constant, c.func.constants[self.constant as usize]);
         if let Some(local) = c.debug.locals.get(self.local as usize) {
@@ -309,6 +318,12 @@ impl LoadInstruction for LoadBool {
 }
 
 impl InstructionOps for LoadBool {
+    fn exec(&self, interpreter: &mut Interpreter) {
+        interpreter.stack.set_r(self.reg, Type::Boolean(self.value));
+        if self.jump {
+            interpreter.pc.skip(1)
+        }
+    }
     fn debug_info(&self, c: InstructionContext) -> Vec<String> {
         if let Some(local) = c.debug.locals.get(self.reg as usize) {
             vec![
@@ -336,6 +351,11 @@ impl LoadInstruction for LoadNil {
 }
 
 impl InstructionOps for LoadNil {
+    fn exec(&self, interpreter: &mut Interpreter) {
+        for i in self.start..self.start + self.range + 1 {
+            interpreter.stack.set_r(i, Type::Nil);
+        }
+    }
     fn debug_info(&self, c: InstructionContext) -> Vec<String> {
         let start = self.start as usize;
         let end = start + self.range + 1;

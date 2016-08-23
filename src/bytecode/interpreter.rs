@@ -1,5 +1,6 @@
 use bytecode::instructions::Instruction;
 use bytecode::bytecode::Bytecode;
+use bytecode::function_block::FunctionBlock;
 use types::Type;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -36,18 +37,35 @@ impl ::std::ops::Index<isize> for PC {
     }
 }
 
+pub type Stack = Vec<Type>;
+
+pub trait StackT {
+    fn set_r(&mut self, usize, Type); // TODO: rename set_r
+}
+
+impl StackT for Stack {
+    fn set_r(&mut self, i: usize, t: Type) {
+        if self.len() < i + 1 {
+            self.push(t)
+        } else {
+            self[i] = t
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Interpreter {
     pub pc: PC,
-    pub stack: Vec<Type>,
+    pub stack: Stack,
+    pub func: FunctionBlock,
 }
 
 impl Interpreter {
     pub fn new(bytecode: Bytecode) -> Self {
         Interpreter {
-            pc: PC::new(bytecode.func.instructions),
+            pc: PC::new(bytecode.func.instructions.clone()),
             stack: Vec::new(),
+            func: bytecode.func,
         }
     }
 
@@ -57,6 +75,12 @@ impl Interpreter {
         self.pc += 1;
         instruction.exec(self)
     }
+
+    pub fn run(&mut self) {
+        loop {
+            self.step()
+        }
+    }
 }
 
 
@@ -64,21 +88,23 @@ impl Interpreter {
 mod tests {
     use super::*;
     use test::Bencher;
-    use bytecode::instructions;
-    use bytecode::instructions::Instruction;
+    use bytecode::bytecode::Bytecode;
+    use bytecode::parser::Parsable;
+    use std::io::Cursor;
 
-    /*
-    #[bench]
-    fn jmp_infinite_loop(b: &mut Bencher) {
-        let mut i = Interpreter::new(Bytecode {
-            vec![
-                Instruction::JMP(instructions::Jmp {
-                    a: 0,
-                    jump: -1,
-                })
-            ]
-        });
-        b.iter(|| i.step())
+    #[test]
+    fn runs_a_bunch_of_constants() {
+        let data = include_bytes!("../../fixtures/a_bunch_of_constants");
+        let bytecode = Bytecode::parse(&mut Cursor::new(data.to_vec()));
+        let mut interpreter = Interpreter::new(bytecode);
+        interpreter.run();
     }
-    */
+
+    #[bench]
+    fn step_infinite_loop(b: &mut Bencher) {
+        let data = include_bytes!("../../fixtures/loop");
+        let bytecode = Bytecode::parse(&mut Cursor::new(data.to_vec()));
+        let mut interpreter = Interpreter::new(bytecode);
+        b.iter(|| interpreter.step())
+    }
 }
