@@ -16,6 +16,10 @@ impl PC {
             _instructions: instructions,
         }
     }
+
+    pub fn at_end(&self) -> bool {
+        self._pc < self._instructions.len()
+    }
 }
 
 impl PC {
@@ -70,16 +74,20 @@ impl Interpreter {
     }
 
     pub fn step(&mut self) {
-        println!("step {:?}", self.pc.current());
-        println!("stack: {:?}", self.stack);
         let instruction = *self.pc.current();
         // println!("{:?}", instruction);
         self.pc += 1;
-        instruction.exec(self)
+        instruction.exec(self);
+    }
+
+    pub fn debug(&mut self) {
+        println!("step {:?}", self.pc.current());
+        self.step();
+        println!("stack: {:?}", self.stack);
     }
 
     pub fn run(&mut self) {
-        loop {
+        while !self.pc.at_end() {
             self.step()
         }
     }

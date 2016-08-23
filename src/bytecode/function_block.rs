@@ -76,21 +76,21 @@ impl FunctionBlock {
 impl Parsable for FunctionBlock {
     fn parse<R: Read + Sized>(r: &mut R) -> Self {
         let source_name = r.parse_lua_string();
-        println!("source_name: {:?}", source_name);
+        // println!("source_name: {:?}", source_name);
         let lines = (u32::parse(r) as usize, u32::parse(r) as usize);
         let params = u8::parse(r);
         r.assert_byte(2); // is_vararg
         let stack_size = u8::parse(r);
-        println!("stack_size: {:?}", stack_size);
+        // println!("stack_size: {:?}", stack_size);
 
         let code = Code::parse(r);
-        println!("code {:#?}", code);
+        // println!("code {:#?}", code);
         let constants = Constants::parse(r);
-        println!("constants {:#?}", constants);
+        // println!("constants {:#?}", constants);
         let mut upvalues = Upvalues::parse(r);
-        println!("upvalues {:#?}", upvalues);
+        // println!("upvalues {:#?}", upvalues);
         let len_protos = u32::parse(r);
-        println!("parsing {} protos (subblocks)", len_protos);
+        // println!("parsing {} protos (subblocks)", len_protos);
         let mut protos = (0..len_protos)
             .map(|_| FunctionBlock::parse(r))
             .collect::<Vec<_>>();
@@ -99,7 +99,7 @@ impl Parsable for FunctionBlock {
         }
         let debug = Debug::parse(r);
         if let Some(ref debug_data) = debug {
-            println!("debug: {:#?}", debug_data);
+            // println!("debug: {:#?}", debug_data);
             debug_data.update_upvalues(&mut upvalues);
         }
 

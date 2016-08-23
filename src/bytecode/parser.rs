@@ -88,7 +88,7 @@ pub trait ReadExt: Read + Sized {
             },
             byte => byte as usize,
         };
-        println!("string size: {}", len);
+        // println!("string size: {}", len);
         let data = self.read_bytes(len - 1);
         Some(String::from_utf8_lossy(&data).into_owned())
     }

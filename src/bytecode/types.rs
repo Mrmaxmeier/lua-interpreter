@@ -10,7 +10,7 @@ const LUA_TNUMINT: u8 = (3 | (1 << 4));  // integer numbers
 impl Parsable for Type {
     fn parse<R: Read + Sized>(r: &mut R) -> Self {
         let kind = r.read_byte();
-        println!("parsing constant: {:#X}", kind);
+        // println!("parsing constant: {:#X}", kind);
         match kind {
             0 => Type::Nil,
             1 => match r.read_byte() {

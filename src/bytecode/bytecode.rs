@@ -33,6 +33,7 @@ impl Parsable for Bytecode {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use test::Bencher;
     use bytecode::upvalues::Upvalue;
     use std::io::Cursor;
     use bytecode::parser::Parsable;
@@ -112,6 +113,14 @@ mod tests {
         assert!(result.debug.is_some());
     }
 
+    #[bench]
+    fn parse_a_bunch_of_constants(b: &mut Bencher) {
+        let data = include_bytes!("../../fixtures/a_bunch_of_constants").to_vec();
+        b.iter(||
+            Bytecode::parse(&mut Cursor::new(data.clone()))
+        )
+    }
+
     fn sanitized(s: &str) -> Vec<String> {
         let s = s.to_owned();
         let lines = s.lines().count();
@@ -140,7 +149,7 @@ mod tests {
     #[test]
     fn pretty_prints_a_bunch_of_constants() {
         let data = include_bytes!("../../fixtures/a_bunch_of_constants");
-        let mut result = Bytecode::parse(&mut Cursor::new(data.to_vec()));
+        let result = Bytecode::parse(&mut Cursor::new(data.to_vec()));
         let mut stream = Cursor::new(Vec::new());
         result.pretty_print(&mut stream).unwrap();
         let pprint_result: String = String::from_utf8(stream.into_inner()).unwrap();
@@ -148,21 +157,21 @@ mod tests {
         let expected_lines = sanitized(r#"
 main <@a_bunch_of_constants.lua> Lua (5, 3)
 
-[7 instructions]
+[6 instructions]
 \t  1\t LoadNil { start: 0, range: 0 }               \t ; 0 = a
 \t  2\t LoadBool { reg: 0, value: true, jump: false }\t ; 0 = a
 \t  3\t LoadK { local: 0, constant: 0 }              \t ; 0 = a, 0 = 42
 \t  4\t LoadK { local: 0, constant: 1 }              \t ; 0 = a, 1 = -0.08333333333
 \t  5\t LoadK { local: 0, constant: 2 }              \t ; 0 = a, 2 = "TSHRSTR"
-\t  7\t Return { a: 0, b: 1 }                        \t ; no return values
+\t  6\t Return { a: 0, b: 1 }                        \t ; no return values
 
-[4 constants]
+[3 constants]
 \t  1\t  42
 \t  2\t  -0.08333333333
 \t  3\t  "TSHRSTR"
 
 [1 locals]
-\t  1\t  Local { varname: "a", startpc: 1, endpc: 7 }
+\t  1\t  Local { varname: "a", startpc: 1, endpc: 6 }
 
 "#);
         let result_lines = pprint_result.lines()

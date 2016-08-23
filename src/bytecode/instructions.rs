@@ -75,7 +75,7 @@ impl Parsable for Instruction {
     fn parse<R: Read + Sized>(r: &mut R) -> Self {
         let data = r.read_u32::<byteorder::LittleEndian>().unwrap();
         let opcode = data & on_bits!(6);
-        println!("opcode: {:?}\tdata: 0b{:0>32b}", opcode, data);
+        // println!("opcode: {:?}\tdata: 0b{:0>32b}", opcode, data);
         match opcode {
             00 => Instruction::MOVE(Move::load(data)),
             01 => Instruction::LOADK(LoadK::load(data)),
