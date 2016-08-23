@@ -70,6 +70,8 @@ impl Interpreter {
     }
 
     pub fn step(&mut self) {
+        println!("step {:?}", self.pc.current());
+        println!("stack: {:?}", self.stack);
         let instruction = *self.pc.current();
         // println!("{:?}", instruction);
         self.pc += 1;
@@ -95,6 +97,14 @@ mod tests {
     #[test]
     fn runs_a_bunch_of_constants() {
         let data = include_bytes!("../../fixtures/a_bunch_of_constants");
+        let bytecode = Bytecode::parse(&mut Cursor::new(data.to_vec()));
+        let mut interpreter = Interpreter::new(bytecode);
+        interpreter.run();
+    }
+
+    #[test]
+    fn branches_correctly() {
+        let data = include_bytes!("../../fixtures/if_conditions");
         let bytecode = Bytecode::parse(&mut Cursor::new(data.to_vec()));
         let mut interpreter = Interpreter::new(bytecode);
         interpreter.run();

@@ -474,6 +474,10 @@ impl LoadInstruction for Return {
 }
 
 impl InstructionOps for Return {
+    fn exec(&self, _: &mut Interpreter) {
+        // TODO: implement Return.exec
+    }
+
     fn debug_info(&self, _: InstructionContext) -> Vec<String> {
         if self.b == 0 {
             vec!["return to top".to_owned()]

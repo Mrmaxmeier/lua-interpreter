@@ -63,16 +63,7 @@ mod tests {
         assert_eq!(result.constants, vec![
             Type::Number(Number::Integer(42)),
             Type::Number(Number::Float(-0.08333333333)),
-            Type::String("TSHRSTR".to_owned()),
-            Type::String(
-                "TLNGSTR\n\
-______________________________________50\n\
-_____________________________________100\n\
-_____________________________________150\n\
-_____________________________________200\n\
-_____________________________________250\n\
-_____________________________________300".to_owned()
-            )
+            Type::String("TSHRSTR".to_owned())
         ]);
     }
 
@@ -150,7 +141,6 @@ _____________________________________300".to_owned()
     fn pretty_prints_a_bunch_of_constants() {
         let data = include_bytes!("../../fixtures/a_bunch_of_constants");
         let mut result = Bytecode::parse(&mut Cursor::new(data.to_vec()));
-        result.func.constants[3] = Type::String("TLNGSTR".into());
         let mut stream = Cursor::new(Vec::new());
         result.pretty_print(&mut stream).unwrap();
         let pprint_result: String = String::from_utf8(stream.into_inner()).unwrap();
@@ -164,14 +154,12 @@ main <@a_bunch_of_constants.lua> Lua (5, 3)
 \t  3\t LoadK { local: 0, constant: 0 }              \t ; 0 = a, 0 = 42
 \t  4\t LoadK { local: 0, constant: 1 }              \t ; 0 = a, 1 = -0.08333333333
 \t  5\t LoadK { local: 0, constant: 2 }              \t ; 0 = a, 2 = "TSHRSTR"
-\t  6\t LoadK { local: 0, constant: 3 }              \t ; 0 = a, 3 = "TLNGSTR"
 \t  7\t Return { a: 0, b: 1 }                        \t ; no return values
 
 [4 constants]
 \t  1\t  42
 \t  2\t  -0.08333333333
 \t  3\t  "TSHRSTR"
-\t  4\t  "TLNGSTR"
 
 [1 locals]
 \t  1\t  Local { varname: "a", startpc: 1, endpc: 7 }
