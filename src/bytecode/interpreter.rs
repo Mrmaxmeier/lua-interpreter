@@ -19,6 +19,7 @@ impl PC {
 
 impl PC {
     pub fn current(&self) -> &Instruction { &self[0] }
+    pub fn skip(&mut self, n: usize) { *self += n as isize }
 }
 
 impl ::std::ops::AddAssign<isize> for PC {
@@ -49,6 +50,7 @@ impl Interpreter {
             stack: Vec::new(),
         }
     }
+
     pub fn step(&mut self) {
         let instruction = *self.pc.current();
         // println!("{:?}", instruction);
@@ -65,16 +67,18 @@ mod tests {
     use bytecode::instructions;
     use bytecode::instructions::Instruction;
 
+    /*
     #[bench]
     fn jmp_infinite_loop(b: &mut Bencher) {
-        let mut i = Interpreter {
-            pc: PC::new(vec![
-                box Instruction::JMP(instructions::Jmp {
+        let mut i = Interpreter::new(Bytecode {
+            vec![
+                Instruction::JMP(instructions::Jmp {
                     a: 0,
                     jump: -1,
                 })
-            ]),
-        };
+            ]
+        });
         b.iter(|| i.step())
     }
+    */
 }

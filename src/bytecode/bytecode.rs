@@ -107,7 +107,7 @@ _____________________________________300".to_owned()
         assert_eq!(result.amount_parameters, 0);
         assert_eq!(result.stack_size, 2);
         assert_eq!(result.instructions, vec![
-            box Instruction::RETURN(instructions::Return{a: 0, b: 0})
+            Instruction::RETURN(instructions::Return{a: 0, b: 1})
         ]);
         assert_eq!(result.constants, vec![]);
         assert_eq!(result.protos, vec![]);

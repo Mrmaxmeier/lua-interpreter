@@ -486,7 +486,7 @@ mod tests {
         let data = &[0x26, 0x00, 0x80, 0x00];
         let mut reader = Cursor::new(data);
         let instruction = Instruction::parse(&mut reader);
-        assert_eq!(instruction, Instruction::RETURN(Return {a: 0, b: 0}));
+        assert_eq!(instruction, Instruction::RETURN(Return {a: 0, b: 1}));
     }
 
     #[test]

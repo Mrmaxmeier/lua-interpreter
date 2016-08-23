@@ -143,8 +143,8 @@ mod tests {
         assert_eq!(result.lines, (0, 0));
         assert_eq!(result.stack_size, 2);
         assert_eq!(result.instructions, vec![
-            box Instruction::LOADK(instructions::LoadK {local: 0, constant: 0}),
-            box Instruction::RETURN(instructions::Return {a: 0, b: 0}),
+            Instruction::LOADK(instructions::LoadK {local: 0, constant: 0}),
+            Instruction::RETURN(instructions::Return {a: 0, b: 1}),
         ]);
         assert_eq!(result.constants, vec![
             box Type::String("zweiundvierzig".into())
