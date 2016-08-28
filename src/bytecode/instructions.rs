@@ -37,10 +37,13 @@ pub enum Instruction {
     LOADBOOL(LoadBool),
     LOADNIL(LoadNil),
     GETTABUP(GetTabUp),
+    SETTABUP(SetTabUp),
+    CONCAT(Concat),
     JMP(Jmp),
     TEST(Test),
     CALL(Call),
     RETURN(Return),
+    CLOSURE(Closure),
 }
 
 macro_rules! match_trait_as_impl {
@@ -84,7 +87,10 @@ impl Parsable for Instruction {
             04 => Instruction::LOADNIL(LoadNil::load(data)),
             // TODO: 5 GETUPVAL
             06 => Instruction::GETTABUP(GetTabUp::load(data)),
-            // TODO: 7 - 29
+            // TODO: 7 GETTABLE
+            08 => Instruction::SETTABUP(SetTabUp::load(data)),
+            // TODO: 9 - 28
+            29 => Instruction::CONCAT(Concat::load(data)),
             30 => Instruction::JMP(Jmp::load(data)),
             // TODO: 31 EQ
             // TODO: 32 LT
@@ -94,8 +100,11 @@ impl Parsable for Instruction {
             36 => Instruction::CALL(Call::load(data)),
             // TODO: 37 TAILCALL
             38 => Instruction::RETURN(Return::load(data)),
-            // TODO: 39 - 46
-            invalid => panic!("invalid opcode: {:?}, instruction: {:?}", invalid, data)
+            // TODO: 39 - 43
+            44 => Instruction::CLOSURE(Closure::load(data)),
+            // TODO: 45 VARARG
+            // TODO: 46 EXTRAARG
+            invalid => panic!("invalid opcode: {:?}, all: {:?}", invalid, data)
         }
     }
 }
@@ -389,6 +398,36 @@ impl InstructionOps for GetTabUp {
     }
 }
 
+// 08: SETTABUP A B C   UpValue[A][RK(B)] := RK(C)
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct SetTabUp { pub reg: Reg, pub upvalue: Reg, pub constant: DataSource }
+
+impl LoadInstruction for SetTabUp {
+    fn load(d: u32) -> Self {
+        let (a, b, c) = parse_A_B_C(d);
+        SetTabUp {
+            reg: a,
+            upvalue: b,
+            constant: c.into(),
+        }
+    }
+}
+
+// 29: CONCAT   A B C   R(A) := R(B).. ... ..R(C)
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Concat { pub a: Reg, pub b: Reg, pub c: Reg }
+
+impl LoadInstruction for Concat {
+    fn load(d: u32) -> Self {
+        let (a, b, c) = parse_A_B_C(d);
+        Concat {
+            a: a,
+            b: b,
+            c: c,
+        }
+    }
+}
+
 // 30: JMP      A sBx   pc += sBx; if (A) close all upvalues >= R(A - 1)
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Jmp { pub a: Reg, pub jump: isize }
@@ -489,6 +528,20 @@ impl InstructionOps for Return {
     }
 }
 
+// 44: CLOSURE  A Bx    R(A) := closure(KPROTO[Bx])
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Closure { pub a: Reg, pub b: Reg }
+
+impl LoadInstruction for Closure {
+    fn load(d: u32) -> Self {
+        let (a, b) = parse_A_Bx(d);
+        Closure {
+            a: a,
+            b: b,
+        }
+    }
+}
 
 
 #[cfg(test)]

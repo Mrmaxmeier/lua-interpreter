@@ -23,21 +23,17 @@ impl PC {
 }
 
 impl PC {
-    pub fn current(&self) -> &Instruction { &self[0] }
+    pub fn get(&self, relative_index: isize) -> &Instruction {
+        let index = self._pc as isize + relative_index;
+        &self._instructions[index as usize]
+    }
+    pub fn current(&self) -> &Instruction { self.get(0) }
     pub fn skip(&mut self, n: usize) { *self += n as isize }
 }
 
 impl ::std::ops::AddAssign<isize> for PC {
     fn add_assign(&mut self, _rhs: isize) {
         self._pc = (self._pc as isize + _rhs) as usize;
-    }
-}
-
-impl ::std::ops::Index<isize> for PC {
-    type Output = Instruction;
-    fn index(&self, _relative_index: isize) -> &Instruction {
-        let index = self._pc as isize + _relative_index;
-        &self._instructions[index as usize]
     }
 }
 
@@ -61,6 +57,7 @@ impl StackT for Stack {
 pub struct Interpreter {
     pub pc: PC,
     pub stack: Stack,
+    pub pc_stack: Vec<PC>,
     pub func: FunctionBlock,
 }
 
@@ -69,6 +66,7 @@ impl Interpreter {
         Interpreter {
             pc: PC::new(bytecode.func.instructions.clone()),
             stack: Vec::new(),
+            pc_stack: vec![],
             func: bytecode.func,
         }
     }

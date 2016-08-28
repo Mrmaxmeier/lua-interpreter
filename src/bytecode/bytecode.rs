@@ -76,6 +76,12 @@ mod tests {
     }
 
     #[test]
+    fn parses_assertions() {
+        let data = include_bytes!("../../fixtures/assertions");
+        Bytecode::parse(&mut Cursor::new(data.to_vec()));
+    }
+
+    #[test]
     fn parses_call_correctly() {
         let data = include_bytes!("../../fixtures/call");
         let result = Bytecode::parse(&mut Cursor::new(data.to_vec())).func;
@@ -180,7 +186,6 @@ main <@a_bunch_of_constants.lua> Lua (5, 3)
         assert_multiline_eq(result_lines, expected_lines);
     }
 
-    #[ignore]
     #[test]
     fn pretty_if_conditions() {
         let data = include_bytes!("../../fixtures/if_conditions");
