@@ -38,9 +38,13 @@ pub enum Instruction {
     LOADNIL(LoadNil),
     GETTABUP(GetTabUp),
     SETTABUP(SetTabUp),
+    LEN(Len),
     CONCAT(Concat),
     JMP(Jmp),
     TEST(Test),
+    EQ(Equals),
+    LT(LessThan),
+    LE(LessThanOrEquals),
     CALL(Call),
     RETURN(Return),
     CLOSURE(Closure),
@@ -75,6 +79,8 @@ impl Instruction {
 
 
 impl Parsable for Instruction {
+    #[allow(unknown_lints)]
+    #[allow(zero_prefixed_literal)]
     fn parse<R: Read + Sized>(r: &mut R) -> Self {
         let data = r.read_u32::<byteorder::LittleEndian>().unwrap();
         let opcode = data & on_bits!(6);
@@ -89,12 +95,13 @@ impl Parsable for Instruction {
             06 => Instruction::GETTABUP(GetTabUp::load(data)),
             // TODO: 7 GETTABLE
             08 => Instruction::SETTABUP(SetTabUp::load(data)),
-            // TODO: 9 - 28
+            // TODO: 9 - 27
+            28 => Instruction::LEN(Len::load(data)),
             29 => Instruction::CONCAT(Concat::load(data)),
             30 => Instruction::JMP(Jmp::load(data)),
-            // TODO: 31 EQ
-            // TODO: 32 LT
-            // TODO: 33 LE
+            31 => Instruction::EQ(Equals::load(data)),
+            32 => Instruction::LT(LessThan::load(data)),
+            33 => Instruction::LE(LessThanOrEquals::load(data)),
             34 => Instruction::TEST(Test::load(data)),
             // TODO: 35 TESTSET
             36 => Instruction::CALL(Call::load(data)),
@@ -413,6 +420,22 @@ impl LoadInstruction for SetTabUp {
     }
 }
 
+
+// 28: LEN      A B     R(A) := length of R(B)
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Len { pub a: Reg, pub b: Reg, pub c: Reg }
+
+impl LoadInstruction for Len {
+    fn load(d: u32) -> Self {
+        let (a, b, c) = parse_A_B_C(d);
+        Len {
+            a: a,
+            b: b,
+            c: c,
+        }
+    }
+}
+
 // 29: CONCAT   A B C   R(A) := R(B).. ... ..R(C)
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Concat { pub a: Reg, pub b: Reg, pub c: Reg }
@@ -454,6 +477,50 @@ impl InstructionOps for Jmp {
     }
 }
 
+// 31: EQ       A B C   if ((RK(B) == RK(C)) ~= A) then pc++
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Equals { pub a: Reg, pub b: Reg, pub c: Reg }
+
+impl LoadInstruction for Equals {
+    fn load(d: u32) -> Self {
+        let (a, b, c) = parse_A_B_C(d);
+        Equals {
+            a: a,
+            b: b,
+            c: c,
+        }
+    }
+}
+
+// 32: LT       A B C   if ((RK(B) <  RK(C)) ~= A) then pc++
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct LessThan { pub a: Reg, pub b: Reg, pub c: Reg }
+
+impl LoadInstruction for LessThan {
+    fn load(d: u32) -> Self {
+        let (a, b, c) = parse_A_B_C(d);
+        LessThan {
+            a: a,
+            b: b,
+            c: c,
+        }
+    }
+}
+
+// 33: LE       A B C   if ((RK(B) <= RK(C)) ~= A) then pc++
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct LessThanOrEquals { pub a: Reg, pub b: Reg, pub c: Reg }
+
+impl LoadInstruction for LessThanOrEquals {
+    fn load(d: u32) -> Self {
+        let (a, b, c) = parse_A_B_C(d);
+        LessThanOrEquals {
+            a: a,
+            b: b,
+            c: c,
+        }
+    }
+}
 
 // 34: TEST     A C     if not (R(A) <=> C) then pc+
 // For the fall-through case, a JMP is always expected, in order to optimize execution in the virtual machine.
