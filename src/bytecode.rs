@@ -1,6 +1,6 @@
-use bytecode::header::Header;
-use bytecode::function_block::FunctionBlock;
-use bytecode::parser::*;
+use header::Header;
+use function_block::FunctionBlock;
+use parser::*;
 use std::io::Write;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -34,29 +34,29 @@ impl Parsable for Bytecode {
 mod tests {
     use super::*;
     use test::Bencher;
-    use bytecode::upvalues::Upvalue;
+    use upvalues::Upvalue;
     use std::io::Cursor;
-    use bytecode::parser::Parsable;
-    use bytecode::instructions;
-    use bytecode::instructions::Instruction;
+    use parser::Parsable;
+    use instructions;
+    use instructions::Instruction;
     use types::{Type, Number};
     use regex::Regex;
 
     #[test]
     fn parses_assignment() {
-        let data = include_bytes!("../../fixtures/assignment");
+        let data = include_bytes!("../fixtures/assignment");
         Bytecode::parse(&mut Cursor::new(data.to_vec()));
     }
 
     #[test]
     fn parses_if_conditions() {
-        let data = include_bytes!("../../fixtures/if_conditions");
+        let data = include_bytes!("../fixtures/if_conditions");
         Bytecode::parse(&mut Cursor::new(data.to_vec()));
     }
 
     #[test]
     fn parses_a_bunch_of_constants_correctly() {
-        let data = include_bytes!("../../fixtures/a_bunch_of_constants");
+        let data = include_bytes!("../fixtures/a_bunch_of_constants");
         let result = Bytecode::parse(&mut Cursor::new(data.to_vec())).func;
 
 
@@ -71,19 +71,19 @@ mod tests {
     #[ignore]
     #[test]
     fn parses_gcd() {
-        let data = include_bytes!("../../fixtures/gcd");
+        let data = include_bytes!("../fixtures/gcd");
         Bytecode::parse(&mut Cursor::new(data.to_vec()));
     }
 
     #[test]
     fn parses_assertions() {
-        let data = include_bytes!("../../fixtures/assertions");
+        let data = include_bytes!("../fixtures/assertions");
         Bytecode::parse(&mut Cursor::new(data.to_vec()));
     }
 
     #[test]
     fn parses_call_correctly() {
-        let data = include_bytes!("../../fixtures/call");
+        let data = include_bytes!("../fixtures/call");
         let result = Bytecode::parse(&mut Cursor::new(data.to_vec())).func;
         println!("result: {:#?}\n", result);
         assert_eq!(result.source_name.unwrap(), "@call.lua".to_owned());
@@ -95,7 +95,7 @@ mod tests {
 
     #[test]
     fn parses_block_correctly() {
-        let data = include_bytes!("../../fixtures/block");
+        let data = include_bytes!("../fixtures/block");
         let result = Bytecode::parse(&mut Cursor::new(data.to_vec())).func;
 
         println!("result: {:#?}\n", result);
@@ -121,7 +121,7 @@ mod tests {
 
     #[bench]
     fn parse_a_bunch_of_constants(b: &mut Bencher) {
-        let data = include_bytes!("../../fixtures/a_bunch_of_constants").to_vec();
+        let data = include_bytes!("../fixtures/a_bunch_of_constants").to_vec();
         b.iter(||
             Bytecode::parse(&mut Cursor::new(data.clone()))
         )
@@ -155,7 +155,7 @@ mod tests {
 
     #[test]
     fn pretty_prints_hello_world() {
-        let data = include_bytes!("../../fixtures/hello_world");
+        let data = include_bytes!("../fixtures/hello_world");
         let result = Bytecode::parse(&mut Cursor::new(data.to_vec()));
         let mut stream = Cursor::new(Vec::new());
         result.pretty_print(&mut stream).unwrap();
@@ -190,7 +190,7 @@ main <@hello_world.lua> Lua (5, 3)
     #[ignore]
     #[test]
     fn pretty_prints_a_bunch_of_constants() {
-        let data = include_bytes!("../../fixtures/a_bunch_of_constants");
+        let data = include_bytes!("../fixtures/a_bunch_of_constants");
         let result = Bytecode::parse(&mut Cursor::new(data.to_vec()));
         let mut stream = Cursor::new(Vec::new());
         result.pretty_print(&mut stream).unwrap();
@@ -225,7 +225,7 @@ main <@a_bunch_of_constants.lua> Lua (5, 3)
     #[ignore]
     #[test]
     fn pretty_if_conditions() {
-        let data = include_bytes!("../../fixtures/if_conditions");
+        let data = include_bytes!("../fixtures/if_conditions");
         let result = Bytecode::parse(&mut Cursor::new(data.to_vec()));
         let mut stream = Cursor::new(Vec::new());
         result.pretty_print(&mut stream).unwrap();

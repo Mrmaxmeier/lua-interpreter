@@ -1,6 +1,6 @@
-use bytecode::instructions::Instruction;
-use bytecode::bytecode::Bytecode;
-use bytecode::function_block::FunctionBlock;
+use instructions::Instruction;
+use bytecode::Bytecode;
+use function_block::FunctionBlock;
 use types::Type;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -134,8 +134,8 @@ impl Interpreter {
 mod tests {
     use super::*;
     use test::Bencher;
-    use bytecode::bytecode::Bytecode;
-    use bytecode::parser::Parsable;
+    use bytecode::Bytecode;
+    use parser::Parsable;
     use std::io::Cursor;
 
     fn interpreter_from_bytes(data: &[u8]) -> Interpreter {
@@ -145,26 +145,26 @@ mod tests {
 
     #[test]
     fn runs_hello_world() {
-        let mut interpreter = interpreter_from_bytes(include_bytes!("../../fixtures/hello_world"));
+        let mut interpreter = interpreter_from_bytes(include_bytes!("../fixtures/hello_world"));
         let result = interpreter.run(true);
         assert_eq!(result.instruction_count, 4);
     }
 
     #[test]
     fn runs_a_bunch_of_constants() {
-        let mut interpreter = interpreter_from_bytes(include_bytes!("../../fixtures/a_bunch_of_constants"));
+        let mut interpreter = interpreter_from_bytes(include_bytes!("../fixtures/a_bunch_of_constants"));
         interpreter.run(true);
     }
 
     #[test]
     fn branches_correctly() {
-        let mut interpreter = interpreter_from_bytes(include_bytes!("../../fixtures/if_conditions"));
+        let mut interpreter = interpreter_from_bytes(include_bytes!("../fixtures/if_conditions"));
         interpreter.run(true);
     }
 
     #[bench]
     fn step_infinite_loop(b: &mut Bencher) {
-        let mut interpreter = interpreter_from_bytes(include_bytes!("../../fixtures/loop"));
+        let mut interpreter = interpreter_from_bytes(include_bytes!("../fixtures/loop"));
         b.iter(|| interpreter.step())
     }
 }

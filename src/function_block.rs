@@ -1,9 +1,9 @@
-use bytecode::parser::*;
-use bytecode::code::Code;
-use bytecode::constants::Constants;
-use bytecode::upvalues::Upvalues;
-use bytecode::debug::Debug;
-use bytecode::instructions::InstructionContext;
+use parser::*;
+use code::Code;
+use constants::Constants;
+use upvalues::Upvalues;
+use debug::Debug;
+use instructions::InstructionContext;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct FunctionBlock {
@@ -131,15 +131,15 @@ mod tests {
     use super::*;
     use std::io::Cursor;
     use types::Type;
-    use bytecode::header::Header;
-    use bytecode::instructions;
-    use bytecode::instructions::Instruction;
-    use bytecode::upvalues::Upvalue;
-    use bytecode::parser::{Parsable, ReadExt};
+    use header::Header;
+    use instructions;
+    use instructions::Instruction;
+    use upvalues::Upvalue;
+    use parser::{Parsable, ReadExt};
 
     #[test]
     fn parses_assignment() {
-        let all = include_bytes!("../../fixtures/assignment");
+        let all = include_bytes!("../fixtures/assignment");
         let mut reader = Cursor::new(all.to_vec());
         Header::parse(&mut reader);
         reader.read_byte(); // skip count of upvalues

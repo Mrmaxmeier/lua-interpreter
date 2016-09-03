@@ -1,4 +1,4 @@
-use bytecode::parser::*;
+use parser::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Header {
@@ -55,11 +55,11 @@ impl Parsable for Header {
 mod tests {
     use super::*;
     use std::io::Cursor;
-    use bytecode::parser::Parsable;
+    use parser::Parsable;
 
     #[test]
     fn parses_assignment() {
-        let data = include_bytes!("../../fixtures/assignment");
+        let data = include_bytes!("../fixtures/assignment");
         let expected = Header::default();
 
         let mut reader = Cursor::new(data.to_vec());

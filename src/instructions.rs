@@ -1,8 +1,8 @@
 // http://www.lua.org/source/5.3/lopcodes.h.html
-use bytecode::parser::*;
-use bytecode::interpreter::*;
-use bytecode::function_block::FunctionBlock;
-use bytecode::debug::DebugData;
+use parser::*;
+use interpreter::*;
+use function_block::FunctionBlock;
+use debug::DebugData;
 use types::Type;
 use byteorder;
 use std::fmt;
@@ -639,7 +639,7 @@ impl LoadInstruction for Closure {
 mod tests {
     use super::*;
     use std::io::Cursor; 
-    use bytecode::parser::Parsable;
+    use parser::Parsable;
 
     #[test]
     fn get_bits_works() {

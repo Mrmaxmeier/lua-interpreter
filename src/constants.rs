@@ -1,4 +1,4 @@
-use bytecode::parser::*;
+use parser::*;
 use types::Type;
 
 pub type Constants = Vec<Type>;

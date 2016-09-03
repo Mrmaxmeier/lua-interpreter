@@ -1,5 +1,5 @@
-use bytecode::parser::*;
-use bytecode::upvalues::Upvalues;
+use parser::*;
+use upvalues::Upvalues;
 use std::fmt;
 
 

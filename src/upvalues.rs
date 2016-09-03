@@ -1,4 +1,4 @@
-use bytecode::parser::*;
+use parser::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Upvalue {

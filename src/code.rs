@@ -1,5 +1,5 @@
-use bytecode::parser::*;
-use bytecode::instructions::Instruction;
+use parser::*;
+use instructions::Instruction;
 
 pub type Code = Vec<Instruction>;
 
