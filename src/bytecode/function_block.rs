@@ -28,8 +28,13 @@ impl FunctionBlock {
         }
     }
 
+    fn pretty_section<W: io::Write + Sized>(&self, w: &mut W, namebase: &str, count: usize) -> io::Result<()> {
+        let s = if count != 1 { "s" } else { "" };
+        writeln!(w, "\n[{} {}{}]", count, namebase, s)
+    }
+
     pub fn pretty_print<W: io::Write + Sized>(&self, w: &mut W) -> io::Result<()> {
-        writeln!(w, "\n[{} instructions]", self.instructions.len())?;
+        self.pretty_section(w, "instruction", self.instructions.len())?;
         if let Some(ref debug) = self.debug {
             let debug_fmts: Vec<String> = self.instructions.iter()
                 .map(|instr| format!("{:?}", instr.as_ops()))
@@ -56,15 +61,19 @@ impl FunctionBlock {
                 writeln!(w, "\t{}\t{:?}", i + 1, instr.as_ops())?;
             }
         }
-        writeln!(w, "\n[{} constants]", self.constants.len())?;
+        self.pretty_section(w, "constant", self.constants.len())?;
         for (i, constant) in self.constants.iter().enumerate() {
             writeln!(w, "\t{}\t{}", i + 1, constant)?;
         };
         if let Some(ref debug) = self.debug {
-            writeln!(w, "\n[{} locals]", debug.locals.len())?;
+            self.pretty_section(w, "local", debug.locals.len())?;
             for (i, local) in debug.locals.iter().enumerate() {
                 writeln!(w, "\t{}\t{:?}", i + 1, local)?;
             };
+        };
+        self.pretty_section(w, "upvalue", self.upvalues.len())?;
+        for (i, upvalue) in self.upvalues.iter().enumerate() {
+            writeln!(w, "\t{}\t{:?}", i + 1, upvalue)?;
         };
         for subblock in &self.protos {
             subblock.pretty_print(w)?;
@@ -152,8 +161,8 @@ mod tests {
         assert_eq!(result.upvalues, vec![
             Upvalue {
                 name: Some("_ENV".into()),
-                instack: 1,
-                idx: 0
+                instack: true,
+                index: 0
             }
         ]);
     }

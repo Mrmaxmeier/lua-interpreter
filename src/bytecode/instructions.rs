@@ -22,7 +22,7 @@ pub trait LoadInstruction: Sized {
 }
 
 pub trait InstructionOps: fmt::Debug {
-    fn exec(&self, _: &mut Interpreter) {
+    fn exec(&self, _: &mut ClosureCtx) {
         println!("exec not yet implemented for {:?}!", self);
         unimplemented!()
     } // TODO: remove impl
@@ -72,7 +72,7 @@ impl Instruction {
             Instruction::RETURN
         ] => as &InstructionOps)
     }
-    pub fn exec(&self, i: &mut Interpreter) {
+    pub fn exec(&self, i: &mut ClosureCtx) {
         self.as_ops().exec(i);
     }
 }
@@ -157,6 +157,15 @@ fn parse_A_B_C(d: u32) -> (Reg, Reg, Reg) {
 pub enum DataSource {
     Register(usize),
     Constant(usize),
+}
+
+impl DataSource {
+    pub fn get_from(&self, i: &mut ClosureCtx) -> Type {
+        match *self {
+            DataSource::Register(index) => i.stack[index].clone(),
+            DataSource::Constant(index) => i.func.constants[index].clone()
+        }
+    }
 }
 
 impl From<usize> for DataSource {
@@ -299,9 +308,9 @@ impl LoadInstruction for LoadK {
 }
 
 impl InstructionOps for LoadK {
-    fn exec(&self, interpreter: &mut Interpreter) {
-        let c = interpreter.func.constants[self.constant].clone();
-        interpreter.stack.set_r(self.local, c);
+    fn exec(&self, closure: &mut ClosureCtx) {
+        let c = closure.func.constants[self.constant].clone();
+        closure.stack.set_r(self.local, c);
     }
 
     fn debug_info(&self, c: InstructionContext) -> Vec<String> {
@@ -334,10 +343,10 @@ impl LoadInstruction for LoadBool {
 }
 
 impl InstructionOps for LoadBool {
-    fn exec(&self, interpreter: &mut Interpreter) {
-        interpreter.stack.set_r(self.reg, Type::Boolean(self.value));
+    fn exec(&self, closure: &mut ClosureCtx) {
+        closure.stack.set_r(self.reg, Type::Boolean(self.value));
         if self.jump {
-            interpreter.pc.skip(1)
+            closure.pc.skip(1)
         }
     }
     fn debug_info(&self, c: InstructionContext) -> Vec<String> {
@@ -367,9 +376,9 @@ impl LoadInstruction for LoadNil {
 }
 
 impl InstructionOps for LoadNil {
-    fn exec(&self, interpreter: &mut Interpreter) {
+    fn exec(&self, closure: &mut ClosureCtx) {
         for i in self.start..self.start + self.range + 1 {
-            interpreter.stack.set_r(i, Type::Nil);
+            closure.stack.set_r(i, Type::Nil);
         }
     }
     fn debug_info(&self, c: InstructionContext) -> Vec<String> {
@@ -395,6 +404,21 @@ impl LoadInstruction for GetTabUp {
 }
 
 impl InstructionOps for GetTabUp {
+    fn exec(&self, closure: &mut ClosureCtx) {
+        let key = if let Type::String(key) = self.constant.get_from(closure) {
+            key
+        } else {
+            panic!("GetTabUp key must be of type Type::String")
+        };
+        let upvalue = if let Type::Table(upvalue) = closure.upvalues[self.upvalue].clone() {
+            upvalue
+        } else {
+            panic!("GetTabUp upvalue must be of type Type::Table")
+        };
+        let nil = Type::Nil;
+        let value = upvalue.get(&key).unwrap_or(&nil);
+        closure.stack.set_r(self.reg, value.clone());
+    }
     fn debug_info(&self, c: InstructionContext) -> Vec<String> {
         c.filter(vec![
             // TODO: reg as local
@@ -466,8 +490,8 @@ impl LoadInstruction for Jmp {
 }
 
 impl InstructionOps for Jmp {
-    fn exec(&self, interpreter: &mut Interpreter) {
-        interpreter.pc += self.jump;
+    fn exec(&self, closure: &mut ClosureCtx) {
+        closure.pc += self.jump;
     }
 
     fn debug_info(&self, c: InstructionContext) -> Vec<String> {
@@ -580,7 +604,7 @@ impl LoadInstruction for Return {
 }
 
 impl InstructionOps for Return {
-    fn exec(&self, _: &mut Interpreter) {
+    fn exec(&self, _: &mut ClosureCtx) {
         // TODO: implement Return.exec
     }
 
