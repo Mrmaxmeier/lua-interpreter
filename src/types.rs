@@ -1,9 +1,12 @@
 use std::collections::HashMap;
 use std::fmt;
+use std::sync::Arc;
+use parking_lot::Mutex;
 
 use parser::*;
 
-pub type LuaTable = HashMap<String, Type>;
+pub type SharedType = Arc<Mutex<Type>>;
+pub type LuaTable = HashMap<String, Type>; 
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Number {

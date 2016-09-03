@@ -5,6 +5,7 @@ extern crate test;
 
 extern crate regex;
 extern crate byteorder;
+extern crate parking_lot;
 
 pub mod types;
 pub mod interpreter;
@@ -17,5 +18,6 @@ pub mod code;
 pub mod constants;
 pub mod upvalues;
 pub mod debug;
+pub mod env;
 
 // TODO: integrate lundump.c/`check_*` methods

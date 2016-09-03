@@ -1,7 +1,10 @@
 use instructions::Instruction;
 use bytecode::Bytecode;
 use function_block::FunctionBlock;
-use types::Type;
+use types::{Type, SharedType};
+use parking_lot::Mutex;
+use std::sync::Arc;
+use env::Environment;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PC {
@@ -37,18 +40,31 @@ impl ::std::ops::AddAssign<isize> for PC {
     }
 }
 
-pub type Stack = Vec<Type>;
+#[derive(Debug, Clone)]
+pub enum StackEntry {
+    Type(Type),
+    TypeRef(Arc<Mutex<Type>>),
+    // TODO: stack barriers / guards?
+}
+
+impl From<Type> for StackEntry {
+    fn from(t: Type) -> Self {
+        StackEntry::Type(t)
+    }
+}
+
+pub type Stack = Vec<StackEntry>;
 
 pub trait StackT {
-    fn set_r(&mut self, usize, Type); // TODO: rename set_r
+    fn set_r<T: Into<StackEntry>>(&mut self, usize, T); // TODO: rename set_r
 }
 
 impl StackT for Stack {
-    fn set_r(&mut self, i: usize, t: Type) {
+    fn set_r<T: Into<StackEntry>>(&mut self, i: usize, t: T) {
         if self.len() < i + 1 {
-            self.push(t)
+            self.push(t.into())
         } else {
-            self[i] = t
+            self[i] = t.into()
         }
     }
 }
@@ -62,15 +78,22 @@ pub struct ClosureCtx {
     pub pc: PC,
     pub stack: Stack,
     pub func: FunctionBlock,
-    pub upvalues: Vec<Type>,
+    pub upvalues: Vec<SharedType>,
 }
 
 impl ClosureCtx {
-    pub fn new(func: FunctionBlock) -> Self {
+    pub fn new(func: FunctionBlock, env: SharedType) -> Self {
+        let upvalues = if let Some(upval) = func.upvalues.get(0) {
+            assert_eq!(upval.name, Some("_ENV".into()));
+            assert_eq!(upval.instack, true);
+            vec![env]
+        } else {
+            vec![]
+        };
         ClosureCtx {
             pc: PC::new(func.instructions.clone()),
-            stack: Vec::new(),
-            upvalues: vec![],
+            stack: vec![],
+            upvalues: upvalues,
             func: func
         }
     }
@@ -80,14 +103,17 @@ impl ClosureCtx {
 pub struct Interpreter {
     pub cl_stack: Vec<ClosureCtx>,
     pub bytecode: Bytecode,
+    pub env: SharedType,
 }
 
 impl Interpreter {
     pub fn new(bytecode: Bytecode) -> Self {
-        let cl = ClosureCtx::new(bytecode.func.clone());
+        let env = (Environment::LuaStd).make();
+        let cl = ClosureCtx::new(bytecode.func.clone(), env.clone());
         Interpreter {
             cl_stack: vec![cl],
             bytecode: bytecode,
+            env: env,
         }
     }
 

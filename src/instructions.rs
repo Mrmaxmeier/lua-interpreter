@@ -162,7 +162,10 @@ pub enum DataSource {
 impl DataSource {
     pub fn get_from(&self, i: &mut ClosureCtx) -> Type {
         match *self {
-            DataSource::Register(index) => i.stack[index].clone(),
+            DataSource::Register(index) => match i.stack[index] {
+                StackEntry::Type(ref t) => t.clone(),
+                _ => unimplemented!()
+            },
             DataSource::Constant(index) => i.func.constants[index].clone()
         }
     }
@@ -410,10 +413,11 @@ impl InstructionOps for GetTabUp {
         } else {
             panic!("GetTabUp key must be of type Type::String")
         };
-        let upvalue = if let Type::Table(upvalue) = closure.upvalues[self.upvalue].clone() {
+        let shared_upvalue = closure.upvalues[self.upvalue].lock();
+        let upvalue = if let Type::Table(ref upvalue) = *shared_upvalue {
             upvalue
         } else {
-            panic!("GetTabUp upvalue must be of type Type::Table")
+            panic!("GetTabUp upvalue must be of type Type::Table (got {:?})", closure.upvalues[self.upvalue])
         };
         let nil = Type::Nil;
         let value = upvalue.get(&key).unwrap_or(&nil);
