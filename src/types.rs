@@ -13,7 +13,7 @@ pub enum Type {
     Boolean(bool),
     Number(Number),
     String(String),
-    Table(HashMap<String, Box<Type>>),
+    Table(HashMap<String, Type>),
 /*
     Function,
     UserData,

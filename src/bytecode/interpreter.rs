@@ -18,7 +18,7 @@ impl PC {
     }
 
     pub fn at_end(&self) -> bool {
-        self._pc < self._instructions.len()
+        self._pc >= self._instructions.len()
     }
 }
 
@@ -53,41 +53,79 @@ impl StackT for Stack {
     }
 }
 
+pub struct RunResult {
+    instruction_count: usize
+}
+
 #[derive(Debug, Clone)]
-pub struct Interpreter {
+pub struct ClosureCtx {
     pub pc: PC,
     pub stack: Stack,
-    pub pc_stack: Vec<PC>,
     pub func: FunctionBlock,
+    pub upvalues: Vec<Type>,
+}
+
+impl ClosureCtx {
+    pub fn new(func: FunctionBlock) -> Self {
+        ClosureCtx {
+            pc: PC::new(func.instructions.clone()),
+            stack: Vec::new(),
+            upvalues: vec![],
+            func: func
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Interpreter {
+    pub cl_stack: Vec<ClosureCtx>,
+    pub bytecode: Bytecode,
 }
 
 impl Interpreter {
     pub fn new(bytecode: Bytecode) -> Self {
+        let cl = ClosureCtx::new(bytecode.func.clone());
         Interpreter {
-            pc: PC::new(bytecode.func.instructions.clone()),
-            stack: Vec::new(),
-            pc_stack: vec![],
-            func: bytecode.func,
+            cl_stack: vec![cl],
+            bytecode: bytecode,
         }
+    }
+
+    pub fn cl(&self) -> &ClosureCtx {
+        &self.cl_stack[self.cl_stack.len() - 1]
+    }
+
+    pub fn cl_mut(&mut self) -> &mut ClosureCtx {
+        let idx = self.cl_stack.len() - 1;
+        &mut self.cl_stack[idx]
     }
 
     pub fn step(&mut self) {
-        let instruction = *self.pc.current();
+        let instruction = *self.cl().pc.current();
         // println!("{:?}", instruction);
-        self.pc += 1;
-        instruction.exec(self);
+        self.cl_mut().pc += 1;
+        instruction.exec(&mut self.cl_mut());
     }
 
     pub fn debug(&mut self) {
-        println!("step {:?}", self.pc.current());
+        println!("step {:?}", self.cl().pc.current());
         self.step();
-        println!("stack: {:?}", self.stack);
+        println!("stack: {:?}", self.cl().stack);
     }
 
-    pub fn run(&mut self) {
-        while !self.pc.at_end() {
-            self.step()
+    pub fn run(&mut self, debug: bool) -> RunResult {
+        let mut result = RunResult {
+            instruction_count: 0
+        };
+        while !self.cl().pc.at_end() {
+            if debug {
+                self.debug();
+            } else {
+                self.step();
+            }
+            result.instruction_count += 1
         }
+        result
     }
 }
 
@@ -100,27 +138,33 @@ mod tests {
     use bytecode::parser::Parsable;
     use std::io::Cursor;
 
+    fn interpreter_from_bytes(data: &[u8]) -> Interpreter {
+        let bytecode = Bytecode::parse(&mut Cursor::new(data.to_vec()));
+        Interpreter::new(bytecode)
+    }
+
+    #[test]
+    fn runs_hello_world() {
+        let mut interpreter = interpreter_from_bytes(include_bytes!("../../fixtures/hello_world"));
+        let result = interpreter.run(true);
+        assert_eq!(result.instruction_count, 4);
+    }
+
     #[test]
     fn runs_a_bunch_of_constants() {
-        let data = include_bytes!("../../fixtures/a_bunch_of_constants");
-        let bytecode = Bytecode::parse(&mut Cursor::new(data.to_vec()));
-        let mut interpreter = Interpreter::new(bytecode);
-        interpreter.run();
+        let mut interpreter = interpreter_from_bytes(include_bytes!("../../fixtures/a_bunch_of_constants"));
+        interpreter.run(true);
     }
 
     #[test]
     fn branches_correctly() {
-        let data = include_bytes!("../../fixtures/if_conditions");
-        let bytecode = Bytecode::parse(&mut Cursor::new(data.to_vec()));
-        let mut interpreter = Interpreter::new(bytecode);
-        interpreter.run();
+        let mut interpreter = interpreter_from_bytes(include_bytes!("../../fixtures/if_conditions"));
+        interpreter.run(true);
     }
 
     #[bench]
     fn step_infinite_loop(b: &mut Bencher) {
-        let data = include_bytes!("../../fixtures/loop");
-        let bytecode = Bytecode::parse(&mut Cursor::new(data.to_vec()));
-        let mut interpreter = Interpreter::new(bytecode);
+        let mut interpreter = interpreter_from_bytes(include_bytes!("../../fixtures/loop"));
         b.iter(|| interpreter.step())
     }
 }
