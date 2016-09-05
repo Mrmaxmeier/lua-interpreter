@@ -8,6 +8,8 @@ extern crate byteorder;
 extern crate parking_lot;
 
 pub mod types;
+pub mod function;
+
 pub mod interpreter;
 pub mod instructions;
 pub mod parser;

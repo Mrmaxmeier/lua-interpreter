@@ -570,20 +570,25 @@ impl InstructionOps for Test {}
 
 // 36: CALL     A B C   R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1))
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Call { pub a: Reg, pub b: Reg, pub c: Reg }
+pub struct Call { pub function: Reg, pub b: Reg, pub c: Reg }
 
 impl LoadInstruction for Call {
     fn load(d: u32) -> Self {
         let (a, b, c) = parse_A_B_C(d);
         Call {
-            a: a,
+            function: a,
             b: b,
             c: c,
         }
     }
 }
 
-impl InstructionOps for Call {}
+impl InstructionOps for Call {
+    fn exec(&self, closure: &mut ClosureCtx) {
+        println!("Call::exec function: {:?}", closure.stack[self.function]);
+        unimplemented!()
+    }
+}
 
 // 38: RETURN   A B     return R(A), ... ,R(A+B-2)
 // if (B == 0) then return up to 'top'.

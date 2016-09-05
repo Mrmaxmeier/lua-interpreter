@@ -2,8 +2,6 @@ use instructions::Instruction;
 use bytecode::Bytecode;
 use function_block::FunctionBlock;
 use types::{Type, SharedType};
-use parking_lot::Mutex;
-use std::sync::Arc;
 use env::Environment;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -43,7 +41,7 @@ impl ::std::ops::AddAssign<isize> for PC {
 #[derive(Debug, Clone)]
 pub enum StackEntry {
     Type(Type),
-    TypeRef(Arc<Mutex<Type>>),
+    SharedType(SharedType),
     // TODO: stack barriers / guards?
 }
 
@@ -107,8 +105,8 @@ pub struct Interpreter {
 }
 
 impl Interpreter {
-    pub fn new(bytecode: Bytecode) -> Self {
-        let env = (Environment::LuaStd).make();
+    pub fn new(bytecode: Bytecode, env: Environment) -> Self {
+        let env = env.make();
         let cl = ClosureCtx::new(bytecode.func.clone(), env.clone());
         Interpreter {
             cl_stack: vec![cl],
@@ -162,35 +160,42 @@ mod tests {
     use test::Bencher;
     use bytecode::Bytecode;
     use parser::Parsable;
+    use env::Environment;
     use std::io::Cursor;
+    use std::sync::mpsc;
 
-    fn interpreter_from_bytes(data: &[u8]) -> Interpreter {
+    fn interpreter_from_bytes(data: &[u8]) -> (Interpreter, mpsc::Receiver<String>) {
         let bytecode = Bytecode::parse(&mut Cursor::new(data.to_vec()));
-        Interpreter::new(bytecode)
+        let (tx, rx) = mpsc::channel();
+        let interpreter = Interpreter::new(bytecode, Environment::Testing(tx));
+        (interpreter, rx)
     }
 
     #[test]
     fn runs_hello_world() {
-        let mut interpreter = interpreter_from_bytes(include_bytes!("../fixtures/hello_world"));
+        let (mut interpreter, rx) = interpreter_from_bytes(include_bytes!("../fixtures/hello_world"));
         let result = interpreter.run(true);
         assert_eq!(result.instruction_count, 4);
+        assert_eq!(rx.recv().unwrap(), "Hello, World!");
     }
 
     #[test]
     fn runs_a_bunch_of_constants() {
-        let mut interpreter = interpreter_from_bytes(include_bytes!("../fixtures/a_bunch_of_constants"));
+        let (mut interpreter, _) = interpreter_from_bytes(include_bytes!("../fixtures/a_bunch_of_constants"));
         interpreter.run(true);
     }
 
     #[test]
     fn branches_correctly() {
-        let mut interpreter = interpreter_from_bytes(include_bytes!("../fixtures/if_conditions"));
+        let (mut interpreter, rx) = interpreter_from_bytes(include_bytes!("../fixtures/if_conditions"));
         interpreter.run(true);
+        assert_eq!(rx.recv().unwrap(), "true is truthy");
+        assert_eq!(rx.recv().unwrap(), "false is falsey");
     }
 
     #[bench]
     fn step_infinite_loop(b: &mut Bencher) {
-        let mut interpreter = interpreter_from_bytes(include_bytes!("../fixtures/loop"));
+        let (mut interpreter, _) = interpreter_from_bytes(include_bytes!("../fixtures/loop"));
         b.iter(|| interpreter.step())
     }
 }

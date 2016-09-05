@@ -4,9 +4,10 @@ use std::sync::Arc;
 use parking_lot::Mutex;
 
 use parser::*;
+use function::*;
 
 pub type SharedType = Arc<Mutex<Type>>;
-pub type LuaTable = HashMap<String, Type>; 
+pub type LuaTable = HashMap<String, Type>;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Number {
@@ -21,11 +22,24 @@ pub enum Type {
     Number(Number),
     String(String),
     Table(LuaTable),
+    Function(Function),
 /*
-    Function,
     UserData,
     Thread,
 */
+}
+
+impl Type {
+    pub fn as_type_str(&self) -> &str {
+        match *self {
+            Type::Nil => "nil",
+            Type::Boolean(_) => "boolean",
+            Type::Number(_) => "number",
+            Type::String(_) => "string",
+            Type::Table(_) => "table",
+            Type::Function(_) => "function",
+        }
+    }
 }
 
 impl fmt::Display for Type {
@@ -45,6 +59,28 @@ impl fmt::Display for Type {
     }
 }
 
+impl<'a> From<&'a str> for Type {
+    fn from(f: &str) -> Self {
+        Type::String(f.into())
+    }
+}
+
+macro_rules! impl_into_type {
+    ($from:ty, $variant:path) => (
+        impl From<$from> for Type {
+            fn from(o: $from) -> Self {
+                $variant(o)
+            }
+        }
+    )
+}
+
+impl_into_type!(Number, Type::Number);
+impl_into_type!(LuaTable, Type::Table);
+impl_into_type!(String, Type::String);
+impl_into_type!(Function, Type::Function);
+
+
 const LUA_TSHRSTR: u8 = 4;               // short strings
 const LUA_TLNGSTR: u8 = (4 | (1 << 4));  // long strings
 
@@ -62,17 +98,17 @@ impl Parsable for Type {
                 1 => Type::Boolean(true),
                 d => panic!("invalid boolean type {}", d)
             },
-            2 => panic!("LUA_TLIGHTUSERDATA is not yet implemented"),
             LUA_TNUMFLT => Type::Number(Number::Float(Float::parse(r))),
             LUA_TNUMINT => Type::Number(Number::Integer(Integer::parse(r))),
             LUA_TSHRSTR | LUA_TLNGSTR => match r.parse_lua_string() {
                 None => Type::Nil,
                 Some(string) => Type::String(string),
             },
-            5 => panic!("LUA_TTABLE is not yet implemented"),
-            6 => panic!("LUA_TFUNCTION is not yet implemented"),
-            7 => panic!("LUA_TUSERADTA is not yet implemented"),
-            8 => panic!("LUA_TTHREAD is not yet implemented"),
+            2 => panic!("LUA_TLIGHTUSERDATA is not parsable, invalid data"),
+            5 => panic!("LUA_TTABLE is not parsable, invalid data"),
+            6 => panic!("LUA_TFUNCTION is not parsable, invalid data"),
+            7 => panic!("LUA_TUSERADTA is not parsable, invalid data"),
+            8 => panic!("LUA_TTHREAD is not parsable, invalid data"),
             d => panic!("invalid type {}", d)
         }
     }
