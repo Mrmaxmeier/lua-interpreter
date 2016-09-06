@@ -551,19 +551,27 @@ impl LoadInstruction for LessThanOrEquals {
 // For the fall-through case, a JMP is always expected, in order to optimize execution in the virtual machine.
 // In effect, TEST and TESTSET must always be paired with a following JMP instruction.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Test { pub a: Reg, pub jump: usize }
+pub struct Test { pub value: Reg, constant: Reg }
 
 impl LoadInstruction for Test {
     fn load(d: u32) -> Self {
-        let (a, b, _) = parse_A_B_C(d);
+        let (a, _, c) = parse_A_B_C(d);
         Test {
-            a: a,
-            jump: b,
+            value: a,
+            constant: c
         }
     }
 }
 
-impl InstructionOps for Test {}
+impl InstructionOps for Test {
+    fn exec(&self, closure: &mut ClosureCtx) {
+        let val = &closure.stack[self.value].as_type();
+        let constant = &closure.func.constants[self.constant];
+        if val == constant {
+            closure.pc.skip(1);
+        }
+    }
+}
 
 // 36: CALL     A B C   R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1))
 #[derive(Debug, Clone, Copy, PartialEq)]
