@@ -153,7 +153,6 @@ mod tests {
     }
 
 
-    #[ignore]
     #[test]
     fn pretty_prints_hello_world() {
         let data = include_bytes!("../fixtures/hello_world");
@@ -166,10 +165,10 @@ mod tests {
 main <@hello_world.lua> Lua (5, 3)
 
 [4 instructions]
-\t  1\t GetTabUp { reg: 0, upvalue: 0, constant: Constant(0) }\t ; 0 = _ENV, 0 = "print"
-\t  2\t LoadK { local: 1, constant: 1 }                       \t ; 1 = "Hello, World!"
-\t  3\t Call { a: 0, b: 2, c: 1 }                             \t ; 
-\t  4\t Return { a: 0, b: 1 }                                 \t ; no return values
+\t  1\t GetTabUp { reg: 0, upvalue: 0, constant: Constant(0) }   \t ; 0 = _ENV, 0 = "print"
+\t  2\t LoadK { local: 1, constant: 1 }                          \t ; 1 = "Hello, World!"
+\t  3\t Call { function: 0, params: Known(1), returns: Known(0) }\t ; 
+\t  4\t Return { a: 0, b: 1 }                                    \t ; no return values
 
 [2 constants]
 \t  1\t  "print"

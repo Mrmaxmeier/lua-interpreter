@@ -7,10 +7,22 @@ use std::sync::mpsc;
 fn standard_functions() -> Vec<(&'static str, NativeFunction)> {
     vec![
         ("print", Box::new(
-            |ref mut i| println!("{:?}", i.arguments())
+            |ref mut i| {
+                let args = i.arguments();
+                let output: Vec<_> = args.iter()
+                    .map(|t| format!("{}", t.as_type()))
+                    .collect();
+                println!("{}", output.join("\t"));
+            }
         )),
         ("type", Box::new(
-            |ref mut i| i.set(0, i.get(0).as_type_str().into())
+            |ref mut i| {
+                let output: Type = {
+                    let se = i.get(0);
+                    se.as_type().as_type_str().into()
+                };
+                i.returns(output);
+            }
         ))
     ]
 }
@@ -18,7 +30,13 @@ fn standard_functions() -> Vec<(&'static str, NativeFunction)> {
 fn testing_funcs(tx: mpsc::Sender<String>) -> Vec<(&'static str, NativeFunction)> {
     vec![
         ("print", Box::new(
-            move |ref mut i| tx.send(format!("{:?}", i.arguments())).unwrap()
+            move |ref mut i| {
+                let args = i.arguments();
+                let output: Vec<_> = args.iter()
+                    .map(|t| format!("{}", t.as_type()))
+                    .collect();
+                tx.send(output.join("\t")).unwrap()
+            }
         )),
     ]
 }

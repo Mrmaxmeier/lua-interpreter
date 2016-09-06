@@ -2,21 +2,31 @@ use std::fmt;
 use std::sync::Arc;
 use parking_lot::Mutex;
 
+use interpreter::StackEntry;
 use types::Type;
 
 pub type NativeFunction = Box<Fn(&mut FunctionInterface)>;
 
-pub struct FunctionInterface {}
+pub struct FunctionInterface<'a> {
+    params: &'a [StackEntry],
+    ret: Vec<Type>
+}
 
-impl FunctionInterface {
-    pub fn arguments(&self) -> Vec<Type> {
-        unimplemented!()
+impl<'a> FunctionInterface<'a> {
+    pub fn new(params: &'a [StackEntry]) -> Self {
+        FunctionInterface {
+            params: params,
+            ret: Vec::new(),
+        }
     }
-    pub fn get(&self, _: usize) -> Type {
-        unimplemented!()
+    pub fn arguments(&self) -> Vec<StackEntry> {
+        self.params.into()
     }
-    pub fn set(&self, _: usize, _: Type) {
-        unimplemented!()
+    pub fn get(&self, index: usize) -> &StackEntry {
+        &self.params[index]
+    }
+    pub fn returns(&mut self, t: Type) {
+        self.ret.push(t)
     }
 }
 

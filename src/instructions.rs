@@ -2,6 +2,8 @@
 use parser::*;
 use interpreter::*;
 use function_block::FunctionBlock;
+use function;
+use function::Function;
 use debug::DebugData;
 use types::Type;
 use byteorder;
@@ -570,15 +572,34 @@ impl InstructionOps for Test {}
 
 // 36: CALL     A B C   R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1))
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Call { pub function: Reg, pub b: Reg, pub c: Reg }
+pub struct Call {
+    pub function: Reg,
+    pub params: Count,
+    pub returns: Count,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Count {
+    Unknown,
+    Known(usize),
+}
+
+impl From<usize> for Count {
+    fn from(n: usize) -> Self {
+        match n {
+            0 => Count::Unknown,
+            _ => Count::Known(n - 1)
+        }
+    }
+}
 
 impl LoadInstruction for Call {
     fn load(d: u32) -> Self {
         let (a, b, c) = parse_A_B_C(d);
         Call {
             function: a,
-            b: b,
-            c: c,
+            params: b.into(),
+            returns: c.into(),
         }
     }
 }
@@ -586,7 +607,23 @@ impl LoadInstruction for Call {
 impl InstructionOps for Call {
     fn exec(&self, closure: &mut ClosureCtx) {
         println!("Call::exec function: {:?}", closure.stack[self.function]);
-        unimplemented!()
+        let param_start = self.function + 1;
+        let params = match self.params {
+            Count::Unknown => &closure.stack[param_start..closure.stack.top()],
+            Count::Known(count) => &closure.stack[param_start..param_start + count],
+        };
+        println!("calling with params: {:?}", params);
+        if let StackEntry::Type(Type::Function(ref func)) = closure.stack[self.function] {
+            match *func {
+                Function::Native(ref native) => {
+                    let mut call_info = function::FunctionInterface::new(params);
+                    native.lock()(&mut call_info);
+                },
+                Function::Lua(_) => unimplemented!(),
+            }
+        } else {
+            panic!("Call function must be of type Type::Function (got {:?})", closure.stack[self.function])
+        }
     }
 }
 

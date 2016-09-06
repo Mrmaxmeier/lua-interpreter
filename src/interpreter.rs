@@ -45,6 +45,15 @@ pub enum StackEntry {
     // TODO: stack barriers / guards?
 }
 
+impl StackEntry {
+    pub fn as_type(&self) -> Type {
+        match *self {
+            StackEntry::Type(ref t) => t.clone(),
+            StackEntry::SharedType(ref t) => (*t).lock().clone(),
+        }
+    }
+}
+
 impl From<Type> for StackEntry {
     fn from(t: Type) -> Self {
         StackEntry::Type(t)
@@ -55,6 +64,7 @@ pub type Stack = Vec<StackEntry>;
 
 pub trait StackT {
     fn set_r<T: Into<StackEntry>>(&mut self, usize, T); // TODO: rename set_r
+    fn top(&self) -> usize;
 }
 
 impl StackT for Stack {
@@ -64,6 +74,9 @@ impl StackT for Stack {
         } else {
             self[i] = t.into()
         }
+    }
+    fn top(&self) -> usize {
+        self.len() - 1
     }
 }
 
