@@ -47,10 +47,10 @@ impl fmt::Display for Type {
         match *self {
             Type::Nil => write!(f, "nil"),
             Type::Boolean(val) => write!(f, "{}", val),
-            Type::String(ref val) => write!(f, "{:?}", val),
+            Type::String(ref val) => write!(f, "{}", val),
             Type::Number(ref num) => {
                 match *num {
-                    Number::Float(ref v) => write!(f, "{:?}", v),
+                    Number::Float(ref v) => write!(f, "{}", v),
                     Number::Integer(ref v) => write!(f, "{}", v)
                 }
             },
