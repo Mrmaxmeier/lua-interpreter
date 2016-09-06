@@ -82,14 +82,14 @@ mod tests {
     }
 
     #[test]
-    fn parses_call_correctly() {
-        let data = include_bytes!("../fixtures/call");
+    fn parses_hello_world_correctly() {
+        let data = include_bytes!("../fixtures/hello_world");
         let result = Bytecode::parse(&mut Cursor::new(data.to_vec())).func;
         println!("result: {:#?}\n", result);
-        assert_eq!(result.source_name.unwrap(), "@call.lua".to_owned());
+        assert_eq!(result.source_name.unwrap(), "@hello_world.lua".to_owned());
         assert_eq!(result.constants, vec![
             Type::String("print".into()),
-            Type::String("value".into())
+            Type::String("Hello, World!".into())
         ]);
     }
 
