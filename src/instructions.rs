@@ -200,7 +200,7 @@ impl<'a> InstructionContext<'a> {
             DataSource::Register(_) => None
         })
             .map(|i| (i, &self.func.constants[i]))
-            .map(|(i, constant)| format!("{} = {}", i, constant))
+            .map(|(i, constant)| format!("{} = {}", i, constant.repr()))
     }
 
     fn pretty_upval(&self, u: Reg) -> Option<String> {
@@ -319,15 +319,10 @@ impl InstructionOps for LoadK {
     }
 
     fn debug_info(&self, c: InstructionContext) -> Vec<String> {
-        let const_s = format!("{} = {}", self.constant, c.func.constants[self.constant as usize]);
-        if let Some(local) = c.debug.locals.get(self.local as usize) {
-            vec![
-                format!("{} = {}", self.local, local),
-                const_s,
-            ]
-        } else {
-            vec![const_s]
-        }
+        c.filter(vec![
+            c.debug.locals.get(self.local as usize).map(|local| format!("{} = {}", self.local, local)),
+            c.pretty_constant(DataSource::Constant(self.constant)),
+        ])
     }
 }
 

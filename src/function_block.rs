@@ -63,7 +63,7 @@ impl FunctionBlock {
         }
         self.pretty_section(w, "constant", self.constants.len())?;
         for (i, constant) in self.constants.iter().enumerate() {
-            writeln!(w, "\t{}\t{}", i + 1, constant)?;
+            writeln!(w, "\t{}\t{}", i + 1, constant.repr())?;
         };
         if let Some(ref debug) = self.debug {
             self.pretty_section(w, "local", debug.locals.len())?;

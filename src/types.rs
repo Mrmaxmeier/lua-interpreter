@@ -40,6 +40,16 @@ impl Type {
             Type::Function(_) => "function",
         }
     }
+
+    pub fn repr(&self) -> String {
+        match *self {
+            Type::Nil
+            | Type::Boolean(_)
+            | Type::Number(_) => format!("{}", self),
+            Type::String(ref s) => format!("{:?}", s),
+            _ => unimplemented!()
+        }
+    }
 }
 
 impl fmt::Display for Type {
