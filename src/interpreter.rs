@@ -1,4 +1,4 @@
-use instructions::Instruction;
+use instruction::Instruction;
 use bytecode::Bytecode;
 use function_block::FunctionBlock;
 use types::{Type, SharedType};

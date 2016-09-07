@@ -3,7 +3,7 @@ use code::Code;
 use constants::Constants;
 use upvalues::Upvalues;
 use debug::Debug;
-use instructions::InstructionContext;
+use instruction::InstructionContext;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct FunctionBlock {
@@ -88,7 +88,11 @@ impl Parsable for FunctionBlock {
         // println!("source_name: {:?}", source_name);
         let lines = (u32::parse(r) as usize, u32::parse(r) as usize);
         let params = u8::parse(r);
-        r.assert_byte(2); // is_vararg
+        let is_vararg = u8::parse(r);
+        match is_vararg {
+            0 | 2 => {},
+            _ => unimplemented!()
+        }
         let stack_size = u8::parse(r);
         // println!("stack_size: {:?}", stack_size);
 

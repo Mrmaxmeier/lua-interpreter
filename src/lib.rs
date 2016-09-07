@@ -11,6 +11,7 @@ pub mod types;
 pub mod function;
 
 pub mod interpreter;
+pub mod instruction;
 pub mod instructions;
 pub mod parser;
 pub mod bytecode;

@@ -68,7 +68,6 @@ mod tests {
         ]);
     }
 
-    #[ignore]
     #[test]
     fn parses_gcd() {
         let data = include_bytes!("../fixtures/gcd");
@@ -78,6 +77,12 @@ mod tests {
     #[test]
     fn parses_assertions() {
         let data = include_bytes!("../fixtures/assertions");
+        Bytecode::parse(&mut Cursor::new(data.to_vec()));
+    }
+
+    #[test]
+    fn parses_function() {
+        let data = include_bytes!("../fixtures/function");
         Bytecode::parse(&mut Cursor::new(data.to_vec()));
     }
 

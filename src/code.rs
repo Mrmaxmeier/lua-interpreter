@@ -1,5 +1,5 @@
 use parser::*;
-use instructions::Instruction;
+use instruction::Instruction;
 
 pub type Code = Vec<Instruction>;
 
