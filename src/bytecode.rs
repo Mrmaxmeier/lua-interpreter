@@ -38,7 +38,7 @@ mod tests {
     use std::io::Cursor;
     use parser::Parsable;
     use instructions;
-    use instructions::Instruction;
+    use instruction::Instruction;
     use types::{Type, Number};
     use regex::Regex;
 

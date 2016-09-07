@@ -238,6 +238,7 @@ mod tests {
     use super::*;
     use std::io::Cursor; 
     use parser::Parsable;
+    use instructions::*;
 
     #[test]
     fn get_bits_works() {
@@ -252,7 +253,7 @@ mod tests {
         let data = &[0x26, 0x00, 0x80, 0x00];
         let mut reader = Cursor::new(data);
         let instruction = Instruction::parse(&mut reader);
-        assert_eq!(instruction, RETURN(Return {a: 0, b: 1}));
+        assert_eq!(instruction, Instruction::RETURN(Return {a: 0, b: 1}));
     }
 
     #[test]
@@ -260,6 +261,6 @@ mod tests {
         let data = &[0b00000110, 0b00000000, 0b01000000, 0];
         let mut reader = Cursor::new(data);
         let instruction = Instruction::parse(&mut reader);
-        assert_eq!(instruction, GETTABUP(GetTabUp { reg: 0, upvalue: 0, constant: DataSource::Constant(0) }));
+        assert_eq!(instruction, Instruction::GETTABUP(GetTabUp { reg: 0, upvalue: 0, constant: DataSource::Constant(0) }));
     }
 }

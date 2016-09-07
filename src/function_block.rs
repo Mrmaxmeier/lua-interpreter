@@ -137,7 +137,7 @@ mod tests {
     use types::Type;
     use header::Header;
     use instructions;
-    use instructions::Instruction;
+    use instruction::Instruction;
     use upvalues::Upvalue;
     use parser::{Parsable, ReadExt};
 
