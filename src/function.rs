@@ -25,8 +25,8 @@ impl<'a> FunctionInterface<'a> {
     pub fn get(&self, index: usize) -> &StackEntry {
         &self.params[index]
     }
-    pub fn returns(&mut self, t: Type) {
-        self.ret.push(t)
+    pub fn returns<T: Into<Vec<Type>>>(&mut self, ret: T) {
+        self.ret = ret.into()
     }
 }
 

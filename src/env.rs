@@ -15,13 +15,31 @@ fn standard_functions() -> Vec<(&'static str, NativeFunction)> {
                 println!("{}", output.join("\t"));
             }
         )),
+        ("assert", Box::new(
+            |ref mut i| {
+                let arg = i.get(0).as_type();
+                let will_panic = match arg {
+                    Type::Nil => true,
+                    Type::Boolean(v) => !v,
+                    _ => false 
+                };
+                if will_panic {
+                    panic!("assertion failed {:?}", arg);
+                }
+                let args: Vec<_> = i.arguments()
+                    .iter()
+                    .map(|a| a.as_type())
+                    .collect();
+                i.returns(args);
+            }
+        )),
         ("type", Box::new(
             |ref mut i| {
                 let output: Type = {
                     let se = i.get(0);
                     se.as_type().as_type_str().into()
                 };
-                i.returns(output);
+                i.returns(vec![output]);
             }
         ))
     ]

@@ -198,6 +198,26 @@ mod tests {
         interpreter.run(true);
     }
 
+    #[should_panic]
+    #[test]
+    fn assert_false_panics() {
+        let (mut interpreter, _) = interpreter_from_bytes(include_bytes!("../fixtures/assert_false"));
+        interpreter.run(true);
+    }
+
+    #[test]
+    fn runs_assertions() {
+        let (mut interpreter, _) = interpreter_from_bytes(include_bytes!("../fixtures/assertions"));
+        interpreter.run(true);
+    }
+
+    #[test]
+    fn calls_lua_functions() {
+        let (mut interpreter, rx) = interpreter_from_bytes(include_bytes!("../fixtures/function"));
+        interpreter.run(true);
+        assert_eq!(rx.recv().unwrap(), "");
+    }
+
     #[test]
     fn branches_correctly() {
         let (mut interpreter, rx) = interpreter_from_bytes(include_bytes!("../fixtures/if_conditions"));
