@@ -9,7 +9,7 @@ use function::*;
 pub type SharedType = Arc<Mutex<Type>>;
 pub type LuaTable = HashMap<String, Type>;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Number {
     Integer(i64),
     Float(f64),

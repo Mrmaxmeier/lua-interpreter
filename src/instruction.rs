@@ -73,6 +73,9 @@ impl Instruction {
             Instruction::LOADNIL,
             Instruction::GETTABUP,
             Instruction::JMP,
+            Instruction::EQ,
+            Instruction::LE,
+            Instruction::LT,
             Instruction::TEST,
             Instruction::CALL,
             Instruction::RETURN
