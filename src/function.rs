@@ -2,7 +2,7 @@ use std::fmt;
 use std::sync::Arc;
 use parking_lot::Mutex;
 
-use interpreter::StackEntry;
+use stack::StackEntry;
 use types::Type;
 
 pub type NativeFunction = Box<Fn(&mut FunctionInterface)>;

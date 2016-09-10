@@ -1,8 +1,9 @@
 use instruction::Instruction;
 use bytecode::Bytecode;
 use function_block::FunctionBlock;
-use types::{Type, SharedType};
+use types::{SharedType};
 use env::Environment;
+use stack::Stack;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PC {
@@ -38,48 +39,6 @@ impl ::std::ops::AddAssign<isize> for PC {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum StackEntry {
-    Type(Type),
-    SharedType(SharedType),
-    // TODO: stack barriers / guards?
-}
-
-impl StackEntry {
-    pub fn as_type(&self) -> Type {
-        match *self {
-            StackEntry::Type(ref t) => t.clone(),
-            StackEntry::SharedType(ref t) => (*t).lock().clone(),
-        }
-    }
-}
-
-impl From<Type> for StackEntry {
-    fn from(t: Type) -> Self {
-        StackEntry::Type(t)
-    }
-}
-
-pub type Stack = Vec<StackEntry>;
-
-pub trait StackT {
-    fn set_r<T: Into<StackEntry>>(&mut self, usize, T); // TODO: rename set_r
-    fn top(&self) -> usize;
-}
-
-impl StackT for Stack {
-    fn set_r<T: Into<StackEntry>>(&mut self, i: usize, t: T) {
-        if self.len() < i + 1 {
-            self.push(t.into())
-        } else {
-            self[i] = t.into()
-        }
-    }
-    fn top(&self) -> usize {
-        self.len() - 1
-    }
-}
-
 pub struct RunResult {
     instruction_count: usize
 }
@@ -103,7 +62,7 @@ impl ClosureCtx {
         };
         ClosureCtx {
             pc: PC::new(func.instructions.clone()),
-            stack: vec![],
+            stack: Stack::new(),
             upvalues: upvalues,
             func: func
         }

@@ -30,7 +30,7 @@ impl InstructionOps for GetTabUp {
         };
         let nil = Type::Nil;
         let value = upvalue.get(&key).unwrap_or(&nil);
-        closure.stack.set_r(self.reg, value.clone());
+        closure.stack[self.reg] = value.clone().into();
     }
     fn debug_info(&self, c: InstructionContext) -> Vec<String> {
         c.filter(vec![

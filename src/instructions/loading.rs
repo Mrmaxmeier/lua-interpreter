@@ -14,6 +14,13 @@ impl LoadInstruction for Move {
     }
 }
 
+impl InstructionOps for Move {
+    fn exec(&self, closure: &mut ClosureCtx) {
+        let val = closure.stack[self.from].clone();
+        closure.stack[self.to] = val;
+    }
+}
+
 // 01: LOADK   A Bx   R(A) := Kst(Bx)
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct LoadK { pub local: Reg, pub constant: Reg }
@@ -31,7 +38,7 @@ impl LoadInstruction for LoadK {
 impl InstructionOps for LoadK {
     fn exec(&self, closure: &mut ClosureCtx) {
         let c = closure.func.constants[self.constant].clone();
-        closure.stack.set_r(self.local, c);
+        closure.stack[self.local] = c.into();
     }
 
     fn debug_info(&self, c: InstructionContext) -> Vec<String> {
@@ -60,7 +67,7 @@ impl LoadInstruction for LoadBool {
 
 impl InstructionOps for LoadBool {
     fn exec(&self, closure: &mut ClosureCtx) {
-        closure.stack.set_r(self.reg, Type::Boolean(self.value));
+        closure.stack[self.reg] = Type::Boolean(self.value).into();
         if self.jump {
             closure.pc.skip(1)
         }
@@ -93,7 +100,7 @@ impl LoadInstruction for LoadNil {
 impl InstructionOps for LoadNil {
     fn exec(&self, closure: &mut ClosureCtx) {
         for i in self.start..self.start + self.range + 1 {
-            closure.stack.set_r(i, Type::Nil);
+            closure.stack[i] = (Type::Nil).into();
         }
     }
     fn debug_info(&self, c: InstructionContext) -> Vec<String> {

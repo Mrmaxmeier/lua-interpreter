@@ -5,7 +5,8 @@ use function_block::FunctionBlock;
 use debug::DebugData;
 use byteorder;
 pub use types::Type;
-pub use interpreter::{ClosureCtx, StackEntry, StackT};
+pub use interpreter::ClosureCtx;
+pub use stack::{StackEntry, Stack};
 
 use instructions::*;
 
@@ -82,6 +83,7 @@ macro_rules! match_trait_as_impl {
 impl Instruction {
     pub fn as_ops(&self) -> &InstructionOps {
         match_trait_as_impl!(self, [
+            Instruction::MOVE,
             Instruction::LOADK,
             Instruction::LOADBOOL,
             Instruction::LOADNIL,
