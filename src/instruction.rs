@@ -102,6 +102,7 @@ impl Instruction {
             Instruction::BNOT,
             Instruction::NOT,
             Instruction::LEN,
+            Instruction::CONCAT,
             Instruction::JMP,
             Instruction::EQ,
             Instruction::LE,

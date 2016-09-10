@@ -181,3 +181,21 @@ impl LoadInstruction for Concat {
         }
     }
 }
+
+impl InstructionOps for Concat {
+    fn exec(&self, closure: &mut ClosureCtx) {
+        let result = {
+            let vals = &closure.stack[self.b .. self.c + 1];
+            vals.iter()
+                .map(|v| v.as_type())
+                .map(|v| match v {
+                    Type::String(ref s) => s.clone(),
+                    Type::Number(_) => v.repr(), // TODO: refactor into Representable trait
+                    _ => panic!("attempted to concatenate a {} value", v.as_type_str())
+                })
+                .collect::<Vec<_>>()
+                .join("")
+        };
+        closure.stack[self.a] = StackEntry::Type(Type::String(result));
+    }
+}
