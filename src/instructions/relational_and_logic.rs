@@ -4,8 +4,8 @@ macro_rules! logic {
     ($name:ident, $op:expr) => (
         #[derive(Debug, Clone, Copy, PartialEq)]
         pub struct $name {
-            pub a: DataSource,
-            pub b: DataSource,
+            pub lhs: DataSource,
+            pub rhs: DataSource,
             pub inverted: bool
         }
 
@@ -13,19 +13,19 @@ macro_rules! logic {
             fn load(d: u32) -> Self {
                 let (a, b, c) = parse_A_B_C(d);
                 $name {
-                    a: a.into(),
-                    b: b.into(),
-                    inverted: c == 0,
+                    lhs: b.into(),
+                    rhs: c.into(),
+                    inverted: a == 0,
                 }
             }
         }
 
         impl InstructionOps for $name {
             fn exec(&self, closure: &mut ClosureCtx) {
-                let a = self.a.get_from(closure);
-                let b = self.b.get_from(closure);
-                let eq = $op(a, b).unwrap();
-                if eq ^ self.inverted {
+                let lhs = self.lhs.get_from(closure);
+                let rhs = self.rhs.get_from(closure);
+                let res = $op(lhs, rhs).unwrap();
+                if res == self.inverted {
                     closure.pc.skip(1)
                 }
             }
