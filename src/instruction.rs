@@ -42,7 +42,13 @@ pub enum Instruction {
     LOADNIL(LoadNil),
     GETTABUP(GetTabUp),
     SETTABUP(SetTabUp),
+    ADD(Add),
+    SUB(Sub),
+    MUL(Mul),
     MOD(Mod),
+    POW(Pow),
+    DIV(Div),
+    IDIV(IDiv),
     LEN(Len),
     CONCAT(Concat),
     JMP(Jmp),
@@ -72,6 +78,13 @@ impl Instruction {
             Instruction::LOADBOOL,
             Instruction::LOADNIL,
             Instruction::GETTABUP,
+            Instruction::ADD,
+            Instruction::SUB,
+            Instruction::MUL,
+            Instruction::MOD,
+            Instruction::POW,
+            Instruction::DIV,
+            Instruction::IDIV,
             Instruction::JMP,
             Instruction::EQ,
             Instruction::LE,
@@ -104,9 +117,25 @@ impl Parsable for Instruction {
             06 => Instruction::GETTABUP(GetTabUp::load(data)),
             // TODO: 7 GETTABLE
             08 => Instruction::SETTABUP(SetTabUp::load(data)),
-            // TODO: 9 - 15
+            // TODO: 9 SETUPVAL
+            // TODO: 10 SETTABLE
+            // TODO: 11 NEWTABLE
+            // TODO: 12 SELF
+            13 => Instruction::ADD(Add::load(data)),
+            14 => Instruction::SUB(Sub::load(data)),
+            15 => Instruction::MUL(Mul::load(data)),
             16 => Instruction::MOD(Mod::load(data)),
-            // TODO: 17 - 27
+            17 => Instruction::POW(Pow::load(data)),
+            18 => Instruction::DIV(Div::load(data)),
+            19 => Instruction::IDIV(IDiv::load(data)),
+            // TODO: 20 BAND
+            // TODO: 21 BOR
+            // TODO: 22 BXOR
+            // TODO: 23 SHL
+            // TODO: 24 SHR
+            // TODO: 25 UNM
+            // TODO: 26 BNOT
+            // TODO: 27 NOT
             28 => Instruction::LEN(Len::load(data)),
             29 => Instruction::CONCAT(Concat::load(data)),
             30 => Instruction::JMP(Jmp::load(data)),
@@ -118,7 +147,11 @@ impl Parsable for Instruction {
             36 => Instruction::CALL(Call::load(data)),
             37 => Instruction::TAILCALL(Tailcall::load(data)),
             38 => Instruction::RETURN(Return::load(data)),
-            // TODO: 39 - 43
+            // TODO: 39 FORLOOP
+            // TODO: 40 FORPREP
+            // TODO: 41 TFORCALL
+            // TODO: 42 TFORLOOP
+            // TODO: 43 SETLIST
             44 => Instruction::CLOSURE(Closure::load(data)),
             // TODO: 45 VARARG
             // TODO: 46 EXTRAARG
