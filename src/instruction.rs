@@ -49,6 +49,11 @@ pub enum Instruction {
     POW(Pow),
     DIV(Div),
     IDIV(IDiv),
+    BAND(BAnd),
+    BOR(BOr),
+    BXOR(BXor),
+    SHL(Shl),
+    SHR(Shl),
     LEN(Len),
     CONCAT(Concat),
     JMP(Jmp),
@@ -85,6 +90,11 @@ impl Instruction {
             Instruction::POW,
             Instruction::DIV,
             Instruction::IDIV,
+            Instruction::BAND,
+            Instruction::BOR,
+            Instruction::BXOR,
+            Instruction::SHL,
+            Instruction::SHR,
             Instruction::JMP,
             Instruction::EQ,
             Instruction::LE,
@@ -128,11 +138,11 @@ impl Parsable for Instruction {
             17 => Instruction::POW(Pow::load(data)),
             18 => Instruction::DIV(Div::load(data)),
             19 => Instruction::IDIV(IDiv::load(data)),
-            // TODO: 20 BAND
-            // TODO: 21 BOR
-            // TODO: 22 BXOR
-            // TODO: 23 SHL
-            // TODO: 24 SHR
+            20 => Instruction::BAND(BAnd::load(data)),
+            21 => Instruction::BOR(BOr::load(data)),
+            22 => Instruction::BXOR(BXor::load(data)),
+            23 => Instruction::SHL(Shl::load(data)),
+            24 => Instruction::SHR(Shl::load(data)),
             // TODO: 25 UNM
             // TODO: 26 BNOT
             // TODO: 27 NOT

@@ -55,6 +55,17 @@ macro_rules! warp_as_number_type {
     })
 }
 
+macro_rules! as_integer_repr {
+    ($f:expr) => (|a, b| {
+        if let (&Number::Integer(ref a), &Number::Integer(ref b)) = (&a, &b) {
+            Number::Integer($f(*a, *b))
+        } else {
+            panic!("number has no integer representation ({:?}, {:?})", a, b)
+        }
+    })
+}
+
+
 // ADD,         A B C   R(A) := RK(B) + RK(C)                           13
 arith!(Add, warp_as_number_type!(|a, b| a + b));
 // SUB,         A B C   R(A) := RK(B) - RK(C)                           14
@@ -90,10 +101,15 @@ arith!(IDiv, |a: Number, b: Number| {
 });
 
 // BAND,        A B C   R(A) := RK(B) & RK(C)                           20
+arith!(BAnd, as_integer_repr!(|a, b| a & b));
 // BOR,         A B C   R(A) := RK(B) | RK(C)                           21
+arith!(BOr, as_integer_repr!(|a, b| a | b));
 // BXOR,        A B C   R(A) := RK(B) ~ RK(C)                           22
+arith!(BXor, as_integer_repr!(|a, b| a ^ b));
 // SHL,         A B C   R(A) := RK(B) << RK(C)                          23
+arith!(Shl, as_integer_repr!(|a, b| a << b));
 // SHR,         A B C   R(A) := RK(B) >> RK(C)                          24
+arith!(Shr, as_integer_repr!(|a, b| a >> b));
 
 // 28: LEN      A B     R(A) := length of R(B)
 #[derive(Debug, Clone, Copy, PartialEq)]
