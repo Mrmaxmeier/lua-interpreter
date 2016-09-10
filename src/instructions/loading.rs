@@ -82,7 +82,7 @@ pub struct LoadNil { pub start: Reg, pub range: usize }
 
 impl LoadInstruction for LoadNil {
     fn load(d: u32) -> Self {
-        let (a, b) = parse_A_Bx(d);
+        let (a, b) = parse_A_B(d);
         LoadNil {
             start: a,
             range: b as usize,
