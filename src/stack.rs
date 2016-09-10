@@ -35,8 +35,17 @@ impl Stack {
     pub fn new() -> Self {
         Stack::default()
     }
+
     pub fn top(&self) -> usize {
         self._stack.len() - 1
+    }
+
+    pub fn repr(&self) -> String {
+        let elements: Vec<String> = self._stack.iter()
+            .map(|e| e.as_type())
+            .map(|t| t.repr())
+            .collect();
+        format!("[{}]", elements.join(", "))
     }
 }
 

@@ -106,7 +106,7 @@ impl Interpreter {
     pub fn debug(&mut self) {
         println!("pc: {}; {:?}", self.cl().pc._pc, self.cl().pc.current());
         self.step();
-        println!("stack: {:?}", self.cl().stack);
+        println!("stack: {}", self.cl().stack.repr());
     }
 
     pub fn run(&mut self, debug: bool) -> RunResult {

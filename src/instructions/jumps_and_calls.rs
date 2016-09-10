@@ -83,8 +83,6 @@ impl Call {
             Count::Known(count) => self.function..self.function + count,
         };
 
-        println!("return_slots {:?} {:?}", return_slots, self.returns);
-
         let call_returns = {
             let param_start = self.function + 1;
             let params = match self.params {

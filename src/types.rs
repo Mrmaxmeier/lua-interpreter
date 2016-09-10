@@ -80,6 +80,10 @@ impl Type {
             | Type::Boolean(_)
             | Type::Number(_) => format!("{}", self),
             Type::String(ref s) => format!("{:?}", s),
+            Type::Function(ref f) => match *f {
+                Function::Lua(ref lf) => format!("function: {:p}", lf),
+                Function::Native(ref nf) => format!("function: {:p}", nf),
+            },
             _ => panic!("repr not implemented for {:?}", self)
         }
     }
