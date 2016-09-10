@@ -80,7 +80,7 @@ impl Type {
             | Type::Boolean(_)
             | Type::Number(_) => format!("{}", self),
             Type::String(ref s) => format!("{:?}", s),
-            _ => unimplemented!()
+            _ => panic!("repr not implemented for {:?}", self)
         }
     }
 }

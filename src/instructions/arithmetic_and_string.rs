@@ -164,7 +164,7 @@ unary!(Not, |value: Type| Type::Boolean(match value {
 unary!(Len, |value: Type| Type::Number(Number::Integer(match value {
     Type::String(s) => s.len() as i64,
     Type::Table(_) => unimplemented!(),
-    _ => panic!("attempt to get length of a {} value ({})", value.as_type_str(), value.repr())
+    _ => panic!("attempt to get length of a {} value ({:?})", value.as_type_str(), value)
 })));
 
 // 29: CONCAT   A B C   R(A) := R(B).. ... ..R(C)

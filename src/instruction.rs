@@ -101,6 +101,7 @@ impl Instruction {
             Instruction::UNM,
             Instruction::BNOT,
             Instruction::NOT,
+            Instruction::LEN,
             Instruction::JMP,
             Instruction::EQ,
             Instruction::LE,

@@ -44,26 +44,18 @@ logic!(Equals, |a, b| -> Result<bool, String> {
 });
 // 32: LT       A B C   if ((RK(B) <  RK(C)) ~= A) then pc++
 logic!(LessThan, |a, b| {
-    match a {
-        Type::Number(ref a_num) => {
-            match b {
-                Type::Number(ref b_num) => Ok(a_num < b_num),
-                b => Err(attempted_to_compare(&a, &b)) 
-            }
-        },
-        a => Err(attempted_to_compare(&a, &b)) 
+    if let (&Type::Number(ref a_num), &Type::Number(ref b_num)) = (&a, &b) {
+        Ok(a_num < b_num)
+    } else {
+        Err(attempted_to_compare(&a, &b))
     }
 });
 
 // 33: LE       A B C   if ((RK(B) <= RK(C)) ~= A) then pc++
 logic!(LessThanOrEquals, |a, b| {
-    match a {
-        Type::Number(ref a_num) => {
-            match b {
-                Type::Number(ref b_num) => Ok(a_num <= b_num),
-                b => Err(attempted_to_compare(&a, &b)) 
-            }
-        },
-        a => Err(attempted_to_compare(&a, &b)) 
+    if let (&Type::Number(ref a_num), &Type::Number(ref b_num)) = (&a, &b) {
+        Ok(a_num <= b_num)
+    } else {
+        Err(attempted_to_compare(&a, &b))
     }
 });

@@ -9,7 +9,7 @@ pub type NativeFunction = Box<Fn(&mut FunctionInterface)>;
 
 pub struct FunctionInterface<'a> {
     params: &'a [StackEntry],
-    ret: Vec<Type>
+    pub ret: Vec<Type>
 }
 
 impl<'a> FunctionInterface<'a> {
