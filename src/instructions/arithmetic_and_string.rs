@@ -121,6 +121,9 @@ arith!(Shl, as_integer_repr!(|a, b| a << b));
 // SHR,         A B C   R(A) := RK(B) >> RK(C)                          24
 arith!(Shr, as_integer_repr!(|a, b| a >> b));
 
+// FIXME: lua integers are two's complement
+// => lua: -1 >> 1 == 9223372036854775807
+// => rust: -1 >> 1 == -1
 
 
 macro_rules! unary {

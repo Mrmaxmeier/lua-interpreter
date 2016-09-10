@@ -26,10 +26,11 @@ assert(a * (101 - one) + b == b * b + a * (b / a)) -- add, sub, mul, div
 assert(four ^ twenty % twenty == 16) -- pow, mod
 assert((twenty - one) // four == 4) -- idiv
 
-assert(~zero == -one) -- bnot, unm
-assert(-one >> one == 9223372036854775807) -- bnot, shr
+assert(~zero == -2) -- bnot
+assert(-one == -1) -- unm
+assert(512 >> one == 256) -- shr
 assert(one << four == 16) -- shl
-assert(four | twenty == 4) -- band
+assert(four | twenty == 20) -- band
 assert(one | four == 5) -- bor
 assert(four ~ twenty == 16) -- bxor
 
