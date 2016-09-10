@@ -1,6 +1,8 @@
 use instruction::*;
 use function;
-use function::Function;
+use function::{Function, NativeFunction};
+use std::sync::Arc;
+use parking_lot::Mutex;
 
 // 30: JMP      A sBx   pc += sBx; if (A) close all upvalues >= R(A - 1)
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -63,7 +65,6 @@ pub struct Call {
     pub returns: Count,
 }
 
-
 impl LoadInstruction for Call {
     fn load(d: u32) -> Self {
         let (a, b, c) = parse_A_B_C(d);
@@ -75,21 +76,46 @@ impl LoadInstruction for Call {
     }
 }
 
+impl Call {
+    fn call_native(&self, closure: &mut ClosureCtx, native: Arc<Mutex<NativeFunction>>) {
+        let return_slots = match self.returns {
+            Count::Unknown => self.function..closure.stack.top(),
+            Count::Known(count) => self.function..self.function + count,
+        };
+
+        println!("return_slots {:?} {:?}", return_slots, self.returns);
+
+        let call_returns = {
+            let param_start = self.function + 1;
+            let params = match self.params {
+                Count::Unknown => &closure.stack[param_start..closure.stack.top()],
+                Count::Known(count) => &closure.stack[param_start..param_start + count],
+            };
+            let mut call_info = function::FunctionInterface::new(params);
+            native.lock()(&mut call_info);
+            call_info.ret
+        };
+
+        for (item, index) in call_returns.iter().zip(return_slots) {
+            closure.stack[index] = StackEntry::Type(item.clone());
+        }
+    }
+}
+
 impl InstructionOps for Call {
     fn exec(&self, closure: &mut ClosureCtx) {
         println!("Call::exec function: {:?}", closure.stack[self.function]);
         let param_start = self.function + 1;
-        let params = match self.params {
-            Count::Unknown => &closure.stack[param_start..closure.stack.top()],
-            Count::Known(count) => &closure.stack[param_start..param_start + count],
-        };
-        println!("calling with params: {:?}", params);
-        if let StackEntry::Type(Type::Function(ref func)) = closure.stack[self.function] {
-            match *func {
-                Function::Native(ref native) => {
-                    let mut call_info = function::FunctionInterface::new(params);
-                    native.lock()(&mut call_info);
-                },
+        {
+            let params = match self.params {
+                Count::Unknown => &closure.stack[param_start..closure.stack.top()],
+                Count::Known(count) => &closure.stack[param_start..param_start + count],
+            };
+            println!("calling with params: {:?}", params);
+        }
+        if let StackEntry::Type(Type::Function(func)) = closure.stack[self.function].clone() {
+            match func {
+                Function::Native(native) => self.call_native(closure, native),
                 Function::Lua(_) => unimplemented!(),
             }
         } else {
