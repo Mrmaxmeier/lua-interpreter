@@ -19,7 +19,7 @@ assert(2 > 1) -- inverted lessthenorequal
 assert(2 >= 2) -- inverted lessthan
 
 assert(assert(#assert("foobar")) == 6) -- assert returns arguments
-assert(("foo" .. "bar" .. "baz") == "foobarbaz") -- concat op
+assert(("foo" .. "bar" .. "baz") == "foobarbaz") -- concat
 
 a, b = assert(four, twenty) -- multiple returns
 assert(a * (101 - one) + b == b * b + a * (b / a)) -- add, sub, mul, div
