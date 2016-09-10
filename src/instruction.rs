@@ -54,6 +54,9 @@ pub enum Instruction {
     BXOR(BXor),
     SHL(Shl),
     SHR(Shl),
+    UNM(Unm),
+    BNOT(BNot),
+    NOT(Not),
     LEN(Len),
     CONCAT(Concat),
     JMP(Jmp),
@@ -95,6 +98,9 @@ impl Instruction {
             Instruction::BXOR,
             Instruction::SHL,
             Instruction::SHR,
+            Instruction::UNM,
+            Instruction::BNOT,
+            Instruction::NOT,
             Instruction::JMP,
             Instruction::EQ,
             Instruction::LE,
@@ -143,9 +149,9 @@ impl Parsable for Instruction {
             22 => Instruction::BXOR(BXor::load(data)),
             23 => Instruction::SHL(Shl::load(data)),
             24 => Instruction::SHR(Shl::load(data)),
-            // TODO: 25 UNM
-            // TODO: 26 BNOT
-            // TODO: 27 NOT
+            25 => Instruction::UNM(Unm::load(data)),
+            26 => Instruction::BNOT(BNot::load(data)),
+            27 => Instruction::NOT(Not::load(data)),
             28 => Instruction::LEN(Len::load(data)),
             29 => Instruction::CONCAT(Concat::load(data)),
             30 => Instruction::JMP(Jmp::load(data)),

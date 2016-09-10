@@ -65,6 +65,16 @@ macro_rules! as_integer_repr {
     })
 }
 
+macro_rules! wrapped_type_as_integer {
+    ($f:expr) => (|val| {
+        if let Type::Number(Number::Integer(v)) = val {
+            Type::Number(Number::Integer($f(v)))
+        } else {
+            panic!("{} has no integer representation", val.as_type_str())
+        }
+    })
+}
+
 
 // ADD,         A B C   R(A) := RK(B) + RK(C)                           13
 arith!(Add, warp_as_number_type!(|a, b| a + b));
@@ -111,20 +121,51 @@ arith!(Shl, as_integer_repr!(|a, b| a << b));
 // SHR,         A B C   R(A) := RK(B) >> RK(C)                          24
 arith!(Shr, as_integer_repr!(|a, b| a >> b));
 
-// 28: LEN      A B     R(A) := length of R(B)
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Len { pub a: Reg, pub b: Reg, pub c: Reg }
 
-impl LoadInstruction for Len {
-    fn load(d: u32) -> Self {
-        let (a, b, c) = parse_A_B_C(d);
-        Len {
-            a: a,
-            b: b,
-            c: c,
+
+macro_rules! unary {
+    ($name:ident, $op:expr) => (
+        #[derive(Debug, Clone, Copy, PartialEq)]
+        pub struct $name {
+            pub a: Reg,
+            pub b: Reg,
         }
-    }
+
+        impl LoadInstruction for $name {
+            fn load(d: u32) -> Self {
+                let (a, b) = parse_A_B(d);
+                $name {
+                    a: a,
+                    b: b,
+                }
+            }
+        }
+
+        impl InstructionOps for $name {
+            fn exec(&self, closure: &mut ClosureCtx) {
+                let value = closure.stack[self.b].as_type();
+                let result = $op(value);
+                closure.stack[self.a] = StackEntry::Type(result);
+            }
+        }
+    )
 }
+
+// UNM,         A B     R(A) := -R(B)                                   25
+unary!(Unm, wrapped_type_as_integer!(|value: i64| -value));
+// BNOT,        A B     R(A) := ~R(B)                                   26
+unary!(BNot, wrapped_type_as_integer!(|value: i64| !value));
+// NOT,         A B     R(A) := not R(B)                                27
+unary!(Not, |value: Type| Type::Boolean(match value {
+    Type::Boolean(v) => !v,
+    _ => false
+}));
+// LEN,         A B     R(A) := length of R(B)                          28
+unary!(Len, |value: Type| Type::Number(Number::Integer(match value {
+    Type::String(s) => s.len() as i64,
+    Type::Table(_) => unimplemented!(),
+    _ => panic!("attempt to get length of a {} value ({})", value.as_type_str(), value.repr())
+})));
 
 // 29: CONCAT   A B C   R(A) := R(B).. ... ..R(C)
 #[derive(Debug, Clone, Copy, PartialEq)]
