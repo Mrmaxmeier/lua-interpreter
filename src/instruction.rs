@@ -4,7 +4,7 @@ use parser::*;
 use function_block::FunctionBlock;
 use debug::DebugData;
 use byteorder;
-pub use types::Type;
+pub use types::{Type, Representable};
 pub use interpreter::ClosureCtx;
 pub use stack::{StackEntry, Stack};
 

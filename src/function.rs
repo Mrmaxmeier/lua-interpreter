@@ -3,7 +3,7 @@ use std::sync::Arc;
 use parking_lot::Mutex;
 
 use stack::StackEntry;
-use types::Type;
+use types::{Type, Representable};
 
 pub type NativeFunction = Box<Fn(&mut FunctionInterface)>;
 
@@ -69,6 +69,15 @@ impl fmt::Debug for Function {
         match *self {
             Function::Lua(ref lua_func) => write!(f, "{:?}", lua_func),
             Function::Native(_) => write!(f, "Function::Native(...)"),
+        }
+    }
+}
+
+impl Representable for Function {
+    fn repr(&self) -> String {
+        match *self {
+            Function::Lua(ref lf) => format!("function: {:p}", lf),
+            Function::Native(ref nf) => format!("function: {:p}", nf),
         }
     }
 }

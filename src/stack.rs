@@ -2,7 +2,7 @@ use std::ops;
 use std::ops::{Index, IndexMut};
 use std::fmt;
 
-use types::{Type, SharedType};
+use types::{Type, SharedType, Representable};
 
 #[derive(Debug, Clone)]
 pub enum StackEntry {

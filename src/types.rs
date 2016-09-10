@@ -73,20 +73,6 @@ impl Type {
             Type::Function(_) => "function",
         }
     }
-
-    pub fn repr(&self) -> String {
-        match *self {
-            Type::Nil
-            | Type::Boolean(_)
-            | Type::Number(_) => format!("{}", self),
-            Type::String(ref s) => format!("{:?}", s),
-            Type::Function(ref f) => match *f {
-                Function::Lua(ref lf) => format!("function: {:p}", lf),
-                Function::Native(ref nf) => format!("function: {:p}", nf),
-            },
-            _ => panic!("repr not implemented for {:?}", self)
-        }
-    }
 }
 
 impl fmt::Display for Type {
@@ -102,6 +88,28 @@ impl fmt::Display for Type {
                 }
             },
             _ => unimplemented!(),
+        }
+    }
+}
+
+impl Representable for Type {
+    fn repr(&self) -> String {
+        match *self {
+            Type::Nil
+            | Type::Boolean(_) => format!("{}", self),
+            Type::String(ref s) => format!("{:?}", s),
+            Type::Number(ref n) => n.repr(),
+            Type::Function(ref f) => f.repr(),
+            _ => panic!("repr not implemented for {:?}", self)
+        }
+    }
+}
+
+impl Representable for Number {
+    fn repr(&self) -> String {
+        match *self {
+            Number::Integer(ref i) => format!("{}", i),
+            Number::Float(ref f) => format!("{}", f),
         }
     }
 }
@@ -127,6 +135,9 @@ impl_into_type!(LuaTable, Type::Table);
 impl_into_type!(String, Type::String);
 impl_into_type!(Function, Type::Function);
 
+pub trait Representable {
+    fn repr(&self) -> String;
+}
 
 const LUA_TSHRSTR: u8 = 4;               // short strings
 const LUA_TLNGSTR: u8 = (4 | (1 << 4));  // long strings

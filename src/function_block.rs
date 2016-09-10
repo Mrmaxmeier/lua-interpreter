@@ -4,6 +4,7 @@ use constants::Constants;
 use upvalues::Upvalues;
 use debug::Debug;
 use instruction::InstructionContext;
+use types::Representable;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct FunctionBlock {
