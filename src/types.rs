@@ -9,10 +9,43 @@ use function::*;
 pub type SharedType = Arc<Mutex<Type>>;
 pub type LuaTable = HashMap<String, Type>;
 
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy)]
 pub enum Number {
     Integer(i64),
     Float(f64),
+}
+
+impl Into<f64> for Number {
+    fn into(self) -> f64 {
+        match self {
+            Number::Integer(i) => i as f64,
+            Number::Float(f) => f,
+        }
+    }
+}
+
+impl PartialEq for Number {
+    fn eq(&self, other: &Number) -> bool {
+        if let (&Number::Integer(a), &Number::Integer(b)) = (self, other) {
+            a == b
+        } else {
+            let a: f64 = (*self).into();
+            let b: f64 = (*other).into();
+            a == b
+        }
+    }
+}
+
+impl PartialOrd for Number {
+    fn partial_cmp(&self, other: &Number) -> Option<::std::cmp::Ordering> {
+        if let (&Number::Integer(a), &Number::Integer(b)) = (self, other) {
+            a.partial_cmp(&b)
+        } else {
+            let a: f64 = (*self).into();
+            let b: f64 = (*other).into();
+            a.partial_cmp(&b)
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
