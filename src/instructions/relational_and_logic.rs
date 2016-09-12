@@ -21,12 +21,12 @@ macro_rules! logic {
         }
 
         impl InstructionOps for $name {
-            fn exec(&self, closure: &mut ClosureCtx) {
-                let lhs = self.lhs.get_from(closure);
-                let rhs = self.rhs.get_from(closure);
+            fn exec(&self, context: &mut Context) {
+                let lhs = self.lhs.get_from(context);
+                let rhs = self.rhs.get_from(context);
                 let res = $op(lhs, rhs).unwrap();
                 if res == self.inverted {
-                    closure.pc.skip(1)
+                    context.ci_mut().pc += 1
                 }
             }
         }

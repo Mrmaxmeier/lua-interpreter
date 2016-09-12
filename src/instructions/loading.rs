@@ -15,9 +15,9 @@ impl LoadInstruction for Move {
 }
 
 impl InstructionOps for Move {
-    fn exec(&self, closure: &mut ClosureCtx) {
-        let val = closure.stack[self.from].clone();
-        closure.stack[self.to] = val;
+    fn exec(&self, context: &mut Context) {
+        let val = context.stack[self.from].clone();
+        context.stack[self.to] = val;
     }
 }
 
@@ -36,9 +36,9 @@ impl LoadInstruction for LoadK {
 }
 
 impl InstructionOps for LoadK {
-    fn exec(&self, closure: &mut ClosureCtx) {
-        let c = closure.func.constants[self.constant].clone();
-        closure.stack[self.local] = c.into();
+    fn exec(&self, context: &mut Context) {
+        let c = context.ci().func.constants[self.constant].clone();
+        context.stack[self.local] = c.into();
     }
 
     fn debug_info(&self, c: InstructionContext) -> Vec<String> {
@@ -66,10 +66,10 @@ impl LoadInstruction for LoadBool {
 }
 
 impl InstructionOps for LoadBool {
-    fn exec(&self, closure: &mut ClosureCtx) {
-        closure.stack[self.reg] = Type::Boolean(self.value).into();
+    fn exec(&self, context: &mut Context) {
+        context.stack[self.reg] = Type::Boolean(self.value).into();
         if self.jump {
-            closure.pc.skip(1)
+            context.ci_mut().pc += 1
         }
     }
     fn debug_info(&self, c: InstructionContext) -> Vec<String> {
@@ -98,9 +98,9 @@ impl LoadInstruction for LoadNil {
 }
 
 impl InstructionOps for LoadNil {
-    fn exec(&self, closure: &mut ClosureCtx) {
+    fn exec(&self, context: &mut Context) {
         for i in self.start..self.start + self.range + 1 {
-            closure.stack[i] = (Type::Nil).into();
+            context.stack[i] = (Type::Nil).into();
         }
     }
     fn debug_info(&self, c: InstructionContext) -> Vec<String> {

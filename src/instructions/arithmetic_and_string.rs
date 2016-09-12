@@ -22,12 +22,12 @@ macro_rules! arith {
         }
 
         impl InstructionOps for $name {
-            fn exec(&self, closure: &mut ClosureCtx) {
-                let b = self.b.get_from(closure);
-                let c = self.c.get_from(closure);
+            fn exec(&self, context: &mut Context) {
+                let b = self.b.get_from(context);
+                let c = self.c.get_from(context);
                 if let (&Type::Number(ref b), &Type::Number(ref c)) = (&b, &c) {
                     let result = $op(*b, *c);
-                    closure.stack[self.a] = StackEntry::Type(Type::Number(result));
+                    context.stack[self.a] = StackEntry::Type(Type::Number(result));
                 } else {
                     panic!("invalid types, expected numbers ({}, {})", b.as_type_str(), c.as_type_str())
                 }
@@ -110,6 +110,10 @@ arith!(IDiv, |a: Number, b: Number| {
     Number::Integer((a / b) as i64)
 });
 
+// FIXME: lua integers are two's complement
+// =>  lua: -1 >> 1 == 9223372036854775807
+// => rust: -1 >> 1 == -1
+
 // BAND,        A B C   R(A) := RK(B) & RK(C)                           20
 arith!(BAnd, as_integer_repr!(|a, b| a & b));
 // BOR,         A B C   R(A) := RK(B) | RK(C)                           21
@@ -120,10 +124,6 @@ arith!(BXor, as_integer_repr!(|a, b| a ^ b));
 arith!(Shl, as_integer_repr!(|a, b| a << b));
 // SHR,         A B C   R(A) := RK(B) >> RK(C)                          24
 arith!(Shr, as_integer_repr!(|a, b| a >> b));
-
-// FIXME: lua integers are two's complement
-// => lua: -1 >> 1 == 9223372036854775807
-// => rust: -1 >> 1 == -1
 
 
 macro_rules! unary {
@@ -145,10 +145,10 @@ macro_rules! unary {
         }
 
         impl InstructionOps for $name {
-            fn exec(&self, closure: &mut ClosureCtx) {
-                let value = closure.stack[self.b].as_type();
+            fn exec(&self, context: &mut Context) {
+                let value = context.stack[self.b].as_type();
                 let result = $op(value);
-                closure.stack[self.a] = StackEntry::Type(result);
+                context.stack[self.a] = StackEntry::Type(result);
             }
         }
     )
@@ -186,19 +186,19 @@ impl LoadInstruction for Concat {
 }
 
 impl InstructionOps for Concat {
-    fn exec(&self, closure: &mut ClosureCtx) {
+    fn exec(&self, context: &mut Context) {
         let result = {
-            let vals = &closure.stack[self.b .. self.c + 1];
+            let vals = &context.stack[self.b .. self.c + 1];
             vals.iter()
                 .map(|v| v.as_type())
                 .map(|v| match v {
                     Type::String(ref s) => s.clone(),
-                    Type::Number(_) => v.repr(), // TODO: refactor into Representable trait
+                    Type::Number(ref n) => n.repr(),
                     _ => panic!("attempted to concatenate a {} value", v.as_type_str())
                 })
                 .collect::<Vec<_>>()
                 .join("")
         };
-        closure.stack[self.a] = StackEntry::Type(Type::String(result));
+        context.stack[self.a] = StackEntry::Type(Type::String(result));
     }
 }

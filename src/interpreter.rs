@@ -44,14 +44,13 @@ pub struct RunResult {
 }
 
 #[derive(Debug, Clone)]
-pub struct ClosureCtx {
+pub struct CallInfo {
     pub pc: PC,
-    pub stack: Stack,
     pub func: FunctionBlock,
     pub upvalues: Vec<SharedType>,
 }
 
-impl ClosureCtx {
+impl CallInfo {
     pub fn new(func: FunctionBlock, env: SharedType) -> Self {
         let upvalues = if let Some(upval) = func.upvalues.get(0) {
             assert_eq!(upval.name, Some("_ENV".into()));
@@ -60,18 +59,36 @@ impl ClosureCtx {
         } else {
             vec![]
         };
-        ClosureCtx {
+        CallInfo {
             pc: PC::new(func.instructions.clone()),
-            stack: Stack::new(),
             upvalues: upvalues,
             func: func
         }
     }
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct Context {
+    pub call_info: Vec<CallInfo>,
+    pub stack: Stack,
+}
+
+impl Context {
+    pub fn new() -> Self { Self::default() }
+    
+    pub fn ci(&self) -> &CallInfo {
+        &self.call_info[self.call_info.len() - 1]
+    }
+
+    pub fn ci_mut(&mut self) -> &mut CallInfo {
+        let index = self.call_info.len() - 1;
+        &mut self.call_info[index]
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Interpreter {
-    pub cl_stack: Vec<ClosureCtx>,
+    pub context: Context,
     pub bytecode: Bytecode,
     pub env: SharedType,
 }
@@ -79,46 +96,49 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn new(bytecode: Bytecode, env: Environment) -> Self {
         let env = env.make();
-        let cl = ClosureCtx::new(bytecode.func.clone(), env.clone());
+        let mut context = Context::default();
+        context.call_info.push(CallInfo::new(bytecode.func.clone(), env.clone()));
         Interpreter {
-            cl_stack: vec![cl],
+            context: context,
             bytecode: bytecode,
             env: env,
         }
     }
 
-    pub fn cl(&self) -> &ClosureCtx {
-        &self.cl_stack[self.cl_stack.len() - 1]
-    }
-
-    pub fn cl_mut(&mut self) -> &mut ClosureCtx {
-        let idx = self.cl_stack.len() - 1;
-        &mut self.cl_stack[idx]
+    pub fn pc(&self) -> &PC {
+        &self.context.ci().pc
     }
 
     pub fn step(&mut self) {
-        let instruction = *self.cl().pc.current();
+        let instruction = *self.pc().current();
         // println!("{:?}", instruction);
-        self.cl_mut().pc += 1;
-        instruction.exec(&mut self.cl_mut());
+        self.context.ci_mut().pc += 1;
+        instruction.exec(&mut self.context);
     }
 
     pub fn debug(&mut self) {
-        println!("pc: {}; {:?}", self.cl().pc._pc, self.cl().pc.current());
+        println!("pc: {}; {:?}", self.pc()._pc, self.pc().current());
         self.step();
-        println!("stack: {}", self.cl().stack.repr());
+        println!("stack: {}", self.context.stack.repr());
     }
 
-    pub fn run(&mut self, debug: bool) -> RunResult {
+    pub fn run(&mut self) -> RunResult {
         let mut result = RunResult {
             instruction_count: 0
         };
-        while !self.cl().pc.at_end() {
-            if debug {
-                self.debug();
-            } else {
-                self.step();
-            }
+        while !self.pc().at_end() {
+            self.step();
+            result.instruction_count += 1
+        }
+        result
+    }
+
+    pub fn run_debug(&mut self) -> RunResult {
+        let mut result = RunResult {
+            instruction_count: 0
+        };
+        while !self.pc().at_end() {
+            self.debug();
             result.instruction_count += 1
         }
         result
@@ -146,7 +166,7 @@ mod tests {
     #[test]
     fn runs_hello_world() {
         let (mut interpreter, rx) = interpreter_from_bytes(include_bytes!("../fixtures/hello_world"));
-        let result = interpreter.run(true);
+        let result = interpreter.run_debug();
         assert_eq!(result.instruction_count, 4);
         assert_eq!(rx.recv().unwrap(), "Hello, World!");
     }
@@ -154,33 +174,33 @@ mod tests {
     #[test]
     fn runs_a_bunch_of_constants() {
         let (mut interpreter, _) = interpreter_from_bytes(include_bytes!("../fixtures/a_bunch_of_constants"));
-        interpreter.run(true);
+        interpreter.run_debug();
     }
 
     #[should_panic]
     #[test]
     fn assert_false_panics() {
         let (mut interpreter, _) = interpreter_from_bytes(include_bytes!("../fixtures/assert_false"));
-        interpreter.run(true);
+        interpreter.run_debug();
     }
 
     #[test]
     fn runs_assertions() {
         let (mut interpreter, _) = interpreter_from_bytes(include_bytes!("../fixtures/assertions"));
-        interpreter.run(true);
+        interpreter.run_debug();
     }
 
     #[test]
     fn calls_lua_functions() {
         let (mut interpreter, rx) = interpreter_from_bytes(include_bytes!("../fixtures/function"));
-        interpreter.run(true);
+        interpreter.run_debug();
         assert_eq!(rx.recv().unwrap(), "");
     }
 
     #[test]
     fn branches_correctly() {
         let (mut interpreter, rx) = interpreter_from_bytes(include_bytes!("../fixtures/if_conditions"));
-        interpreter.run(true);
+        interpreter.run_debug();
         assert_eq!(rx.recv().unwrap(), "true is truthy");
         assert_eq!(rx.recv().unwrap(), "false is falsey");
     }

@@ -13,3 +13,10 @@ impl LoadInstruction for Closure {
         }
     }
 }
+
+
+impl InstructionOps for Closure {
+    fn exec(&self, context: &mut Context) {
+        unimplemented!()
+    }
+}

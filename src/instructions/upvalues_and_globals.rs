@@ -16,21 +16,22 @@ impl LoadInstruction for GetTabUp {
 }
 
 impl InstructionOps for GetTabUp {
-    fn exec(&self, closure: &mut ClosureCtx) {
-        let key = if let Type::String(key) = self.constant.get_from(closure) {
+    fn exec(&self, context: &mut Context) {
+        let key = if let Type::String(key) = self.constant.get_from(context) {
             key
         } else {
             panic!("GetTabUp key must be of type Type::String")
         };
-        let shared_upvalue = closure.upvalues[self.upvalue].lock();
-        let upvalue = if let Type::Table(ref upvalue) = *shared_upvalue {
-            upvalue
-        } else {
-            panic!("GetTabUp upvalue must be of type Type::Table (got {:?})", closure.upvalues[self.upvalue])
+        let value = {
+            let shared_upvalue = context.ci().upvalues[self.upvalue].lock();
+            if let Type::Table(ref upvalue) = *shared_upvalue {
+                let nil = Type::Nil;
+                upvalue.get(&key).unwrap_or(&nil).clone()
+            } else {
+                panic!("GetTabUp upvalue must be of type Type::Table (got {:?})", context.ci().upvalues[self.upvalue])
+            }
         };
-        let nil = Type::Nil;
-        let value = upvalue.get(&key).unwrap_or(&nil);
-        closure.stack[self.reg] = value.clone().into();
+        context.stack[self.reg] = value.into();
     }
     fn debug_info(&self, c: InstructionContext) -> Vec<String> {
         c.filter(vec![

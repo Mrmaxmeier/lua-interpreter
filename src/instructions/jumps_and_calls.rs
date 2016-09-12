@@ -19,8 +19,8 @@ impl LoadInstruction for Jmp {
 }
 
 impl InstructionOps for Jmp {
-    fn exec(&self, closure: &mut ClosureCtx) {
-        closure.pc += self.jump;
+    fn exec(&self, context: &mut Context) {
+        context.ci_mut().pc += self.jump;
     }
 
     fn debug_info(&self, c: InstructionContext) -> Vec<String> {
@@ -48,11 +48,14 @@ impl LoadInstruction for Test {
 }
 
 impl InstructionOps for Test {
-    fn exec(&self, closure: &mut ClosureCtx) {
-        let val = &closure.stack[self.value].as_type();
-        let constant = &closure.func.constants[self.constant];
-        if val == constant {
-            closure.pc.skip(1);
+    fn exec(&self, context: &mut Context) {
+        let jump = {
+            let val = &context.stack[self.value].as_type();
+            let constant = &context.ci().func.constants[self.constant];
+            val == constant
+        };
+        if jump {
+            context.ci_mut().pc += 1;
         }
     }
 }
@@ -77,17 +80,17 @@ impl LoadInstruction for Call {
 }
 
 impl Call {
-    fn call_native(&self, closure: &mut ClosureCtx, native: Arc<Mutex<NativeFunction>>) {
+    fn call_native(&self, context: &mut Context, native: Arc<Mutex<NativeFunction>>) {
         let return_slots = match self.returns {
-            Count::Unknown => self.function..closure.stack.top(),
+            Count::Unknown => self.function..context.stack.top(),
             Count::Known(count) => self.function..self.function + count,
         };
 
         let call_returns = {
             let param_start = self.function + 1;
             let params = match self.params {
-                Count::Unknown => &closure.stack[param_start..closure.stack.top()],
-                Count::Known(count) => &closure.stack[param_start..param_start + count],
+                Count::Unknown => &context.stack[param_start..context.stack.top()],
+                Count::Known(count) => &context.stack[param_start..param_start + count],
             };
             let mut call_info = function::FunctionInterface::new(params);
             native.lock()(&mut call_info);
@@ -95,29 +98,33 @@ impl Call {
         };
 
         for (item, index) in call_returns.iter().zip(return_slots) {
-            closure.stack[index] = StackEntry::Type(item.clone());
+            context.stack[index] = StackEntry::Type(item.clone());
         }
+    }
+
+    fn call_lua(&self, context: &mut Context, lua: function::LuaFunction) {
+        unimplemented!()
     }
 }
 
 impl InstructionOps for Call {
-    fn exec(&self, closure: &mut ClosureCtx) {
-        println!("Call::exec function: {:?}", closure.stack[self.function]);
+    fn exec(&self, context: &mut Context) {
+        println!("Call::exec function: {:?}", context.stack[self.function]);
         let param_start = self.function + 1;
         {
             let params = match self.params {
-                Count::Unknown => &closure.stack[param_start..closure.stack.top()],
-                Count::Known(count) => &closure.stack[param_start..param_start + count],
+                Count::Unknown => &context.stack[param_start..context.stack.top()],
+                Count::Known(count) => &context.stack[param_start..param_start + count],
             };
             println!("calling with params: {:?}", params);
         }
-        if let StackEntry::Type(Type::Function(func)) = closure.stack[self.function].clone() {
+        if let StackEntry::Type(Type::Function(func)) = context.stack[self.function].clone() {
             match func {
-                Function::Native(native) => self.call_native(closure, native),
-                Function::Lua(_) => unimplemented!(),
+                Function::Native(func) => self.call_native(context, func),
+                Function::Lua(func) => self.call_lua(context, func),
             }
         } else {
-            panic!("Call function must be of type Type::Function (got {:?})", closure.stack[self.function])
+            panic!("Call function must be of type Type::Function (got {:?})", context.stack[self.function])
         }
     }
 }
@@ -165,7 +172,7 @@ impl LoadInstruction for Return {
 }
 
 impl InstructionOps for Return {
-    fn exec(&self, _: &mut ClosureCtx) {
+    fn exec(&self, _: &mut Context) {
         // TODO: implement Return.exec
     }
 

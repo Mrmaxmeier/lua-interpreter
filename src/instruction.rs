@@ -5,7 +5,7 @@ use function_block::FunctionBlock;
 use debug::DebugData;
 use byteorder;
 pub use types::{Type, Representable};
-pub use interpreter::ClosureCtx;
+pub use interpreter::Context;
 pub use stack::{StackEntry, Stack};
 
 use instructions::*;
@@ -27,7 +27,7 @@ pub trait LoadInstruction: Sized {
 }
 
 pub trait InstructionOps: fmt::Debug {
-    fn exec(&self, _: &mut ClosureCtx) {
+    fn exec(&self, _: &mut Context) {
         println!("exec not yet implemented for {:?}!", self);
         unimplemented!()
     } // TODO: remove impl
@@ -114,7 +114,7 @@ impl Instruction {
             Instruction::RETURN
         ] => as &InstructionOps)
     }
-    pub fn exec(&self, i: &mut ClosureCtx) {
+    pub fn exec(&self, i: &mut Context) {
         self.as_ops().exec(i);
     }
 }
@@ -224,13 +224,13 @@ pub enum DataSource {
 }
 
 impl DataSource {
-    pub fn get_from(&self, i: &mut ClosureCtx) -> Type {
+    pub fn get_from(&self, i: &mut Context) -> Type {
         match *self {
             DataSource::Register(index) => match i.stack[index] {
                 StackEntry::Type(ref t) => t.clone(),
                 _ => unimplemented!()
             },
-            DataSource::Constant(index) => i.func.constants[index].clone()
+            DataSource::Constant(index) => i.ci().func.constants[index].clone()
         }
     }
 }
