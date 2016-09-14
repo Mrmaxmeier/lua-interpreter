@@ -49,7 +49,7 @@ impl LoadInstruction for ForPrep {
 impl InstructionOps for ForPrep {
     fn exec(&self, context: &mut Context) {
         if let (Type::Number(Number::Integer(val)), Type::Number(Number::Integer(add))) = (context.stack[self.a].as_type(), context.stack[self.a + 2].as_type()) {
-            context.stack[self.a] = Type::Number(Number::Integer(val + add)).into();
+            context.stack[self.a] = Type::Number(Number::Integer(val - add)).into();
         } else {
             panic!("invalid FORPREP types")
         }
