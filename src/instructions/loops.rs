@@ -18,16 +18,23 @@ impl LoadInstruction for ForLoop {
 
 impl InstructionOps for ForLoop {
     fn exec(&self, context: &mut Context) {
-        if let (Type::Number(Number::Integer(val)), Type::Number(Number::Integer(add))) = (context.stack[self.a].as_type(), context.stack[self.a + 2].as_type()) {
-            context.stack[self.a] = Type::Number(Number::Integer(val + add)).into();
+        if let (
+            Type::Number(Number::Integer(current)),
+            Type::Number(Number::Integer(limit)),
+            Type::Number(Number::Integer(step))
+        ) = (
+            context.stack[self.a].as_type(),
+            context.stack[self.a + 1].as_type(),
+            context.stack[self.a + 2].as_type()
+        ) {
+            let current = current + step;
+            context.stack[self.a] = Type::Number(Number::Integer(current)).into();
+            if (step > 0 && current <= limit) || (step < 0 && current >= limit) {
+                context.stack[self.a + 3] = context.stack[self.a].as_type().into();
+                context.ci_mut().pc += self.jump;
+            }
         } else {
             panic!("invalid FORPREP types")
-        }
-        if let (Type::Number(Number::Integer(current)), Type::Number(Number::Integer(limit))) = (context.stack[self.a].as_type(), context.stack[self.a + 1].as_type()) {
-            if current <= limit {
-                context.ci_mut().pc += self.jump;
-                context.stack[self.a + 3] = context.stack[self.a].as_type().into()
-            }
         }
     }
 }
