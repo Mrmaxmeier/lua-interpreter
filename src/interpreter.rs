@@ -190,6 +190,7 @@ mod tests {
         interpreter.run_debug();
     }
 
+    #[ignore]
     #[test]
     fn calls_lua_functions() {
         let (mut interpreter, rx) = interpreter_from_bytes(include_bytes!("../fixtures/function"));
@@ -203,6 +204,32 @@ mod tests {
         interpreter.run_debug();
         assert_eq!(rx.recv().unwrap(), "true is truthy");
         assert_eq!(rx.recv().unwrap(), "false is falsey");
+    }
+
+    #[test]
+    fn fizz_buzz() {
+        let (mut interpreter, rx) = interpreter_from_bytes(include_bytes!("../fixtures/fizz_buzz"));
+        interpreter.run_debug();
+        let output = vec![
+            "1",
+            "2",
+            "Fizz",
+            "4",
+            "Buzz",
+            "Fizz",
+            "7",
+            "8",
+            "Fizz",
+            "Buzz",
+            "11",
+            "Fizz",
+            "13",
+            "14",
+            "FizzBuzz",
+        ];
+        for s in output {
+            assert_eq!(rx.recv().unwrap(), s);
+        }
     }
 
     #[bench]

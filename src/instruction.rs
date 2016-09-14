@@ -68,6 +68,8 @@ pub enum Instruction {
     CALL(Call),
     TAILCALL(Tailcall),
     RETURN(Return),
+    FORLOOP(ForLoop),
+    FORPREP(ForPrep),
     CLOSURE(Closure),
 }
 
@@ -111,7 +113,9 @@ impl Instruction {
             Instruction::LT,
             Instruction::TEST,
             Instruction::CALL,
-            Instruction::RETURN
+            Instruction::RETURN,
+            Instruction::FORLOOP,
+            Instruction::FORPREP
         ] => as &InstructionOps)
     }
     pub fn exec(&self, i: &mut Context) {
@@ -167,7 +171,8 @@ impl Parsable for Instruction {
             36 => Instruction::CALL(Call::load(data)),
             37 => Instruction::TAILCALL(Tailcall::load(data)),
             38 => Instruction::RETURN(Return::load(data)),
-            // TODO: 39 FORLOOP
+            39 => Instruction::FORLOOP(ForLoop::load(data)),
+            40 => Instruction::FORPREP(ForPrep::load(data)),
             // TODO: 40 FORPREP
             // TODO: 41 TFORCALL
             // TODO: 42 TFORLOOP
