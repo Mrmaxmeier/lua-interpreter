@@ -1,4 +1,5 @@
 use parser::*;
+use std::ops::{Index, IndexMut};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Upvalue {

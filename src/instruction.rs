@@ -115,7 +115,8 @@ impl Instruction {
             Instruction::CALL,
             Instruction::RETURN,
             Instruction::FORLOOP,
-            Instruction::FORPREP
+            Instruction::FORPREP,
+            Instruction::CLOSURE
         ] => as &InstructionOps)
     }
     pub fn exec(&self, i: &mut Context) {
@@ -250,6 +251,27 @@ impl From<usize> for DataSource {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct UpvalueIndex (i64);
+
+impl UpvalueIndex {
+    pub fn load(val: usize) -> Self {
+        UpvalueIndex(
+            if val >= 0b1_0000_0000 {
+                -(val as i64 & 0xFF)
+            } else {
+                val as i64
+            }
+        )
+    }
+}
+
+impl From<usize> for UpvalueIndex {
+    fn from(other: usize) -> Self {
+        UpvalueIndex::load(other)
+    }
+}
+
 pub struct InstructionContext<'a> {
     pub index: usize,
     pub func: &'a FunctionBlock,
@@ -270,10 +292,14 @@ impl<'a> InstructionContext<'a> {
             .map(|(i, constant)| format!("{} = {}", i, constant.repr()))
     }
 
-    pub fn pretty_upval(&self, u: Reg) -> Option<String> {
-        Some(u as usize)
+    pub fn pretty_upval(&self, u: UpvalueIndex) -> Option<String> {
+        (if u.0 < 0 {
+            None
+        } else {
+            Some(u.0 as usize)
+        })
             .map(|i| &self.debug.upvalue_names[i])
-            .map(|name| format!("{} = {}", u, name))
+            .map(|name| format!("{} = {}", u.0, name))
     }
 }
 

@@ -4,6 +4,7 @@ use parking_lot::Mutex;
 
 use stack::StackEntry;
 use types::{Type, Representable};
+use function_block::FunctionBlock;
 
 pub type NativeFunction = Box<Fn(&mut FunctionInterface)>;
 
@@ -32,14 +33,23 @@ impl<'a> FunctionInterface<'a> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct LuaFunction {
-    func: usize, // function index in the stack
-    top: usize, // top for this function
+    // pub function_index: usize, // function index in the stack
+    // top: usize, // top for this function
     // struct CallInfo *previous, *next;  /* dynamic call link */
-    base: usize,
-    savedpc: usize,
-    extra: usize,
-    number_results: usize,
-    callstatus: u8,
+    // base: usize,
+    // savedpc: usize,
+    // extra: usize,
+    // number_results: usize,
+    // callstatus: u8,
+    pub proto: FunctionBlock,
+}
+
+impl LuaFunction {
+    pub fn new(proto: FunctionBlock) -> Self {
+        LuaFunction {
+            proto: proto
+        }
+    }
 }
 
 #[derive(Clone)]

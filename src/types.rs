@@ -48,7 +48,7 @@ impl PartialOrd for Number {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)] // TODO: lua-sensitive code should'nt use the derived PartialEq
 pub enum Type {
     Nil,
     Boolean(bool),

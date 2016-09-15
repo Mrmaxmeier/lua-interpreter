@@ -2,14 +2,14 @@ use instruction::*;
 
 // 06: GETTABUP   A B C   R(A) := UpValue[B][RK(C)]
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct GetTabUp { pub reg: Reg, pub upvalue: Reg, pub constant: DataSource }
+pub struct GetTabUp { pub reg: Reg, pub upvalue: UpvalueIndex, pub constant: DataSource }
 
 impl LoadInstruction for GetTabUp {
     fn load(d: u32) -> Self {
         let (a, b, c) = parse_A_B_C(d);
         GetTabUp {
             reg: a,
-            upvalue: b,
+            upvalue: b.into(),
             constant: c.into(),
         }
     }

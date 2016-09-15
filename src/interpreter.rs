@@ -4,6 +4,7 @@ use function_block::FunctionBlock;
 use types::{SharedType};
 use env::Environment;
 use stack::Stack;
+use upvalues::Upvalues;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PC {
@@ -47,7 +48,7 @@ pub struct RunResult {
 pub struct CallInfo {
     pub pc: PC,
     pub func: FunctionBlock,
-    pub upvalues: Vec<SharedType>,
+    pub upvalues: Upvalues,
 }
 
 impl CallInfo {
@@ -190,7 +191,6 @@ mod tests {
         interpreter.run_debug();
     }
 
-    #[ignore]
     #[test]
     fn calls_lua_functions() {
         let (mut interpreter, rx) = interpreter_from_bytes(include_bytes!("../fixtures/function"));

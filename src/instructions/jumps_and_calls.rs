@@ -1,6 +1,7 @@
 use instruction::*;
 use function;
 use function::{Function, NativeFunction};
+use interpreter::{CallInfo, PC};
 use std::sync::Arc;
 use parking_lot::Mutex;
 
@@ -52,7 +53,7 @@ impl InstructionOps for Test {
         let jump = {
             let val = &context.stack[self.value].as_type();
             let constant = &context.ci().func.constants[self.constant];
-            val == constant
+            val == constant // TODO: check lua spec
         };
         if jump {
             context.ci_mut().pc += 1;
@@ -103,7 +104,11 @@ impl Call {
     }
 
     fn call_lua(&self, context: &mut Context, lua: function::LuaFunction) {
-        unimplemented!()
+        context.call_info.push(CallInfo {
+            func: lua.proto.clone(),
+            pc: PC::new(lua.proto.instructions),
+            upvalues: vec![], // TODO: upvals
+        });
     }
 }
 

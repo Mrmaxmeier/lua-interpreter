@@ -1,4 +1,5 @@
 use instruction::*;
+use function::*;
 // 44: CLOSURE  A Bx    R(A) := closure(KPROTO[Bx])
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -17,6 +18,8 @@ impl LoadInstruction for Closure {
 
 impl InstructionOps for Closure {
     fn exec(&self, context: &mut Context) {
-        unimplemented!()
+        let proto = context.ci().func.protos[self.b].clone();
+        let func = LuaFunction::new(proto);
+        context.stack[self.a] = Type::Function(Function::Lua(func)).into();
     }
 }
