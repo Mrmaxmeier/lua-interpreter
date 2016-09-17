@@ -37,6 +37,18 @@ impl PartialEq for Number {
     }
 }
 
+impl Ord for Number {
+    fn cmp(&self, other: &Number) -> ::std::cmp::Ordering {
+        if let (&Number::Integer(a), &Number::Integer(b)) = (self, other) {
+            a.cmp(&b)
+        } else {
+            let a: f64 = (*self).into();
+            let b: f64 = (*other).into();
+            a.partial_cmp(&b).unwrap()
+        }
+    }
+}
+
 impl PartialOrd for Number {
     fn partial_cmp(&self, other: &Number) -> Option<::std::cmp::Ordering> {
         if let (&Number::Integer(a), &Number::Integer(b)) = (self, other) {
@@ -60,7 +72,7 @@ impl Hash for Number {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Hash, Eq, PartialOrd, Ord)]
 pub enum Type {
     Nil,
     Boolean(bool),

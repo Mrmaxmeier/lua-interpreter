@@ -2,7 +2,7 @@ use types::Type;
 use table::LuaTableRaw;
 use function::{Function, NativeFunction};
 use std::sync::mpsc;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 fn standard_functions() -> Vec<(&'static str, NativeFunction)> {
     vec![
@@ -79,7 +79,7 @@ impl Environment {
     }
 
     pub fn make(&self) -> Type {
-        let mut table: LuaTableRaw = HashMap::new();
+        let mut table: LuaTableRaw = BTreeMap::new();
         match *self {
             Environment::Empty => {},
             Environment::LuaStandard => Self::insert_standard(&mut table),

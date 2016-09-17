@@ -1,19 +1,19 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::hash::{Hash, Hasher};
 use std::fmt;
+use std::cmp;
 use types::*;
 use parking_lot::{Mutex, MutexGuard};
 
-pub type LuaTableRaw = HashMap<Type, Type>;
+pub type LuaTableRaw = BTreeMap<Type, Type>;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct LuaTable (Shared<LuaTableRaw>);
 
 impl LuaTable {
     pub fn new() -> Self {
-        let table: LuaTableRaw = HashMap::new();
-        LuaTable (Arc::new(Mutex::new(table)))
+        Self::default()
     }
 
     pub fn lock<'a>(&'a self) -> MutexGuard<'a, LuaTableRaw> {
@@ -34,9 +34,33 @@ impl PartialEq for LuaTable {
     }
 }
 
+impl Ord for LuaTable {
+    fn cmp(&self, other: &LuaTable) -> cmp::Ordering {
+        if self == other {
+            cmp::Ordering::Equal
+        } else {
+            let s = self.lock();
+            let o = other.lock();
+            Ord::cmp(&(*s), &(*o))
+        }
+    }
+}
+
+impl PartialOrd for LuaTable {
+    fn partial_cmp(&self, other: &LuaTable) -> Option<cmp::Ordering> {
+        if self == other {
+            Some(cmp::Ordering::Equal)
+        } else {
+            let s = self.lock();
+            let o = other.lock();
+            PartialOrd::partial_cmp(&(*s), &(*o))
+        }
+    }
+}
+
 impl Hash for LuaTable {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        unimplemented!();
+        self.lock().hash(state)
     }
 }
 

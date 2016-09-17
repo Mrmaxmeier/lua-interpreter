@@ -66,6 +66,18 @@ impl PartialEq for Function {
     }
 }
 
+impl Ord for Function {
+    fn cmp(&self, other: &Function) -> ::std::cmp::Ordering {
+        unimplemented!()
+    }
+}
+
+impl PartialOrd for Function {
+    fn partial_cmp(&self, other: &Function) -> Option<::std::cmp::Ordering> {
+        unimplemented!()
+    }
+}
+
 impl Hash for Function {
     fn hash<H: Hasher>(&self, state: &mut H) {
         unimplemented!()

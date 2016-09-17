@@ -94,6 +94,8 @@ impl Instruction {
             Instruction::LOADBOOL,
             Instruction::LOADNIL,
             Instruction::GETTABUP,
+            Instruction::GETTABLE,
+            Instruction::SETTABLE,
             Instruction::NEWTABLE,
             Instruction::ADD,
             Instruction::SUB,
