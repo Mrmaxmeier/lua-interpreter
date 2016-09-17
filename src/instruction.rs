@@ -43,6 +43,10 @@ pub enum Instruction {
     LOADNIL(LoadNil),
     GETTABUP(GetTabUp),
     SETTABUP(SetTabUp),
+    GETTABLE(GetTable),
+    SETTABLE(SetTable),
+    NEWTABLE(NewTable),
+    SELF(SelfOp),
     ADD(Add),
     SUB(Sub),
     MUL(Mul),
@@ -90,6 +94,7 @@ impl Instruction {
             Instruction::LOADBOOL,
             Instruction::LOADNIL,
             Instruction::GETTABUP,
+            Instruction::NEWTABLE,
             Instruction::ADD,
             Instruction::SUB,
             Instruction::MUL,
@@ -139,12 +144,12 @@ impl Parsable for Instruction {
             04 => Instruction::LOADNIL(LoadNil::load(data)),
             // TODO: 5 GETUPVAL
             06 => Instruction::GETTABUP(GetTabUp::load(data)),
-            // TODO: 7 GETTABLE
+            07 => Instruction::GETTABLE(GetTable::load(data)),
             08 => Instruction::SETTABUP(SetTabUp::load(data)),
             // TODO: 9 SETUPVAL
-            // TODO: 10 SETTABLE
-            // TODO: 11 NEWTABLE
-            // TODO: 12 SELF
+            10 => Instruction::SETTABLE(SetTable::load(data)),
+            11 => Instruction::NEWTABLE(NewTable::load(data)),
+            12 => Instruction::SELF(SelfOp::load(data)),
             13 => Instruction::ADD(Add::load(data)),
             14 => Instruction::SUB(Sub::load(data)),
             15 => Instruction::MUL(Mul::load(data)),
@@ -233,7 +238,6 @@ impl DataSource {
         match *self {
             DataSource::Register(index) => match i.stack[index] {
                 StackEntry::Type(ref t) => t.clone(),
-                _ => unimplemented!()
             },
             DataSource::Constant(index) => i.ci().func.constants[index].clone()
         }

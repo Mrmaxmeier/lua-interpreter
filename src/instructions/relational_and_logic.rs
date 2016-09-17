@@ -39,38 +39,9 @@ fn attempted_to_compare(a: &Type, b: &Type) -> String {
 
 
 // 31: EQ       A B C   if ((RK(B) == RK(C)) ~= A) then pc++
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Equals {
-    pub lhs: DataSource,
-    pub rhs: DataSource,
-    pub inverted: bool
-}
-
-impl LoadInstruction for Equals {
-    fn load(d: u32) -> Self {
-        let (a, b, c) = parse_A_B_C(d);
-        Equals {
-            lhs: b.into(),
-            rhs: c.into(),
-            inverted: a == 0,
-        }
-    }
-}
-
-impl InstructionOps for Equals {
-    fn exec(&self, context: &mut Context) {
-        let res = if let (Some(shared_lhs), Some(shared_rhs)) = (self.lhs.get_shared(context), self.rhs.get_shared(context)) {
-            ::std::sync::Arc::ptr_eq(&shared_lhs, &shared_rhs)
-        } else {
-            let lhs = self.lhs.get_from(context);
-            let rhs = self.rhs.get_from(context);
-            lhs == rhs
-        };
-        if res == self.inverted {
-            context.ci_mut().pc += 1
-        }
-    }
-}
+logic!(Equals, |a, b| -> Result<bool, String> {
+    Ok(a == b)
+});
 
 // 32: LT       A B C   if ((RK(B) <  RK(C)) ~= A) then pc++
 logic!(LessThan, |a, b| {

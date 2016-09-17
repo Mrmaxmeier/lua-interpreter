@@ -1,5 +1,5 @@
 use instruction::*;
-use types::LuaTable;
+use table::LuaTable;
 
 // GETTABLE,    A B C   R(A) := R(B)[RK(C)]                             07
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -31,9 +31,12 @@ impl LoadInstruction for SetTable {
 
 impl InstructionOps for SetTable {
     fn exec(&self, context: &mut Context) {
-        let table = context.stack[self.a];
-        let key = context.stack[self.b];
-        let value = context.stack[self.c];
+        let key = context.stack[self.b].as_type();
+        let value = context.stack[self.c].as_type();
+        let _table = context.stack[self.a].as_type();
+        let table = as_type_variant!(_table, Type::Table);
+        let mut _guard = table.lock();
+        _guard.insert(key, value);
     }
 }
 
@@ -53,8 +56,8 @@ impl LoadInstruction for NewTable {
 impl InstructionOps for NewTable {
     fn exec(&self, context: &mut Context) {
         let table = LuaTable::new();
-        let shared: SharedType = Type::Table(table).into();
-        context.stack[self.a] = StackEntry::SharedType(shared);
+        let as_type = Type::Table(table);
+        context.stack[self.a] = as_type.into();
     }
 }
 

@@ -1,8 +1,8 @@
 use instruction::Instruction;
 use bytecode::Bytecode;
 use function_block::FunctionBlock;
-use types::{SharedType};
 use env::Environment;
+use types::Type;
 use stack::Stack;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -47,11 +47,11 @@ pub struct RunResult {
 pub struct CallInfo {
     pub pc: PC,
     pub func: FunctionBlock,
-    pub upvalues: Vec<SharedType>,
+    pub upvalues: Vec<Type>,
 }
 
 impl CallInfo {
-    pub fn new(func: FunctionBlock, env: SharedType) -> Self {
+    pub fn new(func: FunctionBlock, env: Type) -> Self {
         let upvalues = if let Some(upval) = func.upvalues.get(0) {
             assert_eq!(upval.name, Some("_ENV".into()));
             assert_eq!(upval.instack, true);
@@ -90,7 +90,7 @@ impl Context {
 pub struct Interpreter {
     pub context: Context,
     pub bytecode: Bytecode,
-    pub env: SharedType,
+    pub env: Type,
 }
 
 impl Interpreter {
@@ -187,6 +187,12 @@ mod tests {
     #[test]
     fn runs_assertions() {
         let (mut interpreter, _) = interpreter_from_bytes(include_bytes!("../fixtures/assertions"));
+        interpreter.run_debug();
+    }
+
+    #[test]
+    fn runs_table_ops_test() {
+        let (mut interpreter, _) = interpreter_from_bytes(include_bytes!("../fixtures/table_ops"));
         interpreter.run_debug();
     }
 

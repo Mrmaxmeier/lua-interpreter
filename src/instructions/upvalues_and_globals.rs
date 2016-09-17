@@ -17,16 +17,12 @@ impl LoadInstruction for GetTabUp {
 
 impl InstructionOps for GetTabUp {
     fn exec(&self, context: &mut Context) {
-        let key = if let Type::String(key) = self.constant.get_from(context) {
-            key
-        } else {
-            panic!("GetTabUp key must be of type Type::String")
-        };
+        let key = self.constant.get_from(context);
         let value = {
-            let shared_upvalue = context.ci().upvalues[self.upvalue].lock();
-            if let Type::Table(ref upvalue) = *shared_upvalue {
+            if let Type::Table(ref upvalue) = context.ci().upvalues[self.upvalue] {
+                let table = upvalue.lock();
                 let nil = Type::Nil;
-                upvalue.get(&key).unwrap_or(&nil).clone()
+                table.get(&key).unwrap_or(&nil).clone()
             } else {
                 panic!("GetTabUp upvalue must be of type Type::Table (got {:?})", context.ci().upvalues[self.upvalue])
             }

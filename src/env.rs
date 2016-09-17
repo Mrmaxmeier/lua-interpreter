@@ -1,8 +1,8 @@
-use types::{Type, LuaTable, SharedType};
+use types::Type;
+use table::LuaTableRaw;
 use function::{Function, NativeFunction};
-use std::sync::Arc;
-use parking_lot::Mutex;
 use std::sync::mpsc;
+use std::collections::HashMap;
 
 fn standard_functions() -> Vec<(&'static str, NativeFunction)> {
     vec![
@@ -66,20 +66,20 @@ pub enum Environment {
 }
 
 impl Environment {
-    fn insert_standard(table: &mut LuaTable) {
+    fn insert_standard(table: &mut LuaTableRaw) {
         Self::insert_funcs(table, standard_functions());
         table.insert("_VERSION".into(), "Lua 5.3".into());
     }
 
-    fn insert_funcs(table: &mut LuaTable, funcs: Vec<(&'static str, NativeFunction)>) {
+    fn insert_funcs(table: &mut LuaTableRaw, funcs: Vec<(&'static str, NativeFunction)>) {
         for (name, func) in funcs {
             let as_func: Function = func.into();
             table.insert(name.into(), as_func.into());
         }
     }
 
-    pub fn make(&self) -> SharedType {
-        let mut table = LuaTable::new();
+    pub fn make(&self) -> Type {
+        let mut table: LuaTableRaw = HashMap::new();
         match *self {
             Environment::Empty => {},
             Environment::LuaStandard => Self::insert_standard(&mut table),
@@ -88,7 +88,6 @@ impl Environment {
                 Self::insert_funcs(&mut table, testing_funcs(tx.clone()));
             },
         }
-        let as_type = Type::Table(table);
-        Arc::new(Mutex::new(as_type))
+        Type::Table(table.into())
     }
 }
