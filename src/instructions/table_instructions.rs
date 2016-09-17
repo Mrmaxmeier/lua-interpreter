@@ -1,5 +1,6 @@
 use instruction::*;
 use table::LuaTable;
+use std::collections::btree_map::Entry;
 
 // GETTABLE,    A B C   R(A) := R(B)[RK(C)]                             07
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -17,12 +18,19 @@ impl LoadInstruction for GetTable {
 
 impl InstructionOps for GetTable {
     fn exec(&self, context: &mut Context) {
-        let key = context.stack[self.b].as_type();
+        let key = self.c.get_from(context);
         let _table = context.stack[self.b].as_type();
         let table = as_type_variant!(_table, Type::Table);
-        let _guard = table.lock();
-        let nil = Type::Nil;
-        let value = _guard.get(&key).unwrap_or(&nil);
+        let mut _guard = table.lock();
+        let entry = _guard.entry(key.clone()); // this is pretty stupid...
+        let value = if entry.key() == &key {
+            match entry {
+                Entry::Occupied(e) => e.get().clone(),
+                Entry::Vacant(_) => Type::Nil,
+            }
+        } else {
+            Type::Nil
+        };
         context.stack[self.a] = value.clone().into();
     }
 }
