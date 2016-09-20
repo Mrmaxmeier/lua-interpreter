@@ -52,15 +52,17 @@ pub struct CallInfo {
 }
 
 impl CallInfo {
-    pub fn new(func: FunctionBlock, env: Type) -> Self {
-        // FIXME don't special-case _ENV
-        let upvalues = if let Some(upval) = func.upvalues.get(0) {
-            assert_eq!(upval.name, Some("_ENV".into()));
-            assert_eq!(upval.instack, true);
-            vec![env]
-        } else {
-            vec![]
-        };
+    pub fn new(func: FunctionBlock, upvalues: &[Type], stack: &Stack) -> Self {
+        let upvalues: Vec<_> = func.upvalues.iter()
+            .map(|upvalue| {
+                let nil = Type::Nil;
+                if upvalue.instack {
+                    stack[upvalue.index as usize].as_type().clone()
+                } else {
+                    upvalues.get(upvalue.index as usize).unwrap_or(&nil).clone()
+                }
+            })
+            .collect();
         CallInfo {
             pc: PC::new(func.instructions.clone()),
             upvalues: upvalues,
@@ -102,8 +104,11 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn new(bytecode: Bytecode, env: Environment) -> Self {
         let env = env.make();
+        let mut _stack = Stack::default();
+        _stack[0] = env.clone().into();
+        let entry_frame = CallInfo::new(bytecode.func.clone(), &[], &_stack);
         let mut context = Context::default();
-        context.call_info.push(CallInfo::new(bytecode.func.clone(), env.clone()));
+        context.call_info.push(entry_frame);
         Interpreter {
             context: context,
             bytecode: bytecode,
@@ -132,7 +137,7 @@ impl Interpreter {
         let mut result = RunResult {
             instruction_count: 0
         };
-        while !self.pc().at_end() {
+        while !self.context.call_info.is_empty() {
             self.step();
             result.instruction_count += 1
         }
@@ -143,7 +148,7 @@ impl Interpreter {
         let mut result = RunResult {
             instruction_count: 0
         };
-        while !self.pc().at_end() {
+        while !self.context.call_info.is_empty() {
             self.debug();
             result.instruction_count += 1
         }
@@ -206,7 +211,9 @@ mod tests {
     fn calls_lua_functions() {
         let (mut interpreter, rx) = interpreter_from_bytes(include_bytes!("../fixtures/function"));
         interpreter.run_debug();
-        assert_eq!(rx.recv().unwrap(), "");
+        assert_eq!(rx.recv().unwrap(), "outside a");
+        assert_eq!(rx.recv().unwrap(), "inside a");
+        assert_eq!(rx.recv().unwrap(), "after a");
     }
 
     #[test]

@@ -158,6 +158,7 @@ mod tests {
     }
 
 
+    #[ignore]
     #[test]
     fn pretty_prints_hello_world() {
         let data = include_bytes!("../fixtures/hello_world");

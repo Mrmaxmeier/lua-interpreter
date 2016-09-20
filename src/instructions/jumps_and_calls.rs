@@ -1,7 +1,7 @@
 use instruction::*;
 use function;
 use function::{Function, NativeFunction};
-use interpreter::{CallInfo, PC};
+use interpreter::CallInfo;
 use std::sync::Arc;
 use parking_lot::Mutex;
 
@@ -104,11 +104,8 @@ impl Call {
     }
 
     fn call_lua(&self, context: &mut Context, lua: function::LuaFunction) {
-        context.call_info.push(CallInfo {
-            func: lua.proto.clone(),
-            pc: PC::new(lua.proto.instructions),
-            upvalues: vec![], // TODO: upvals
-        });
+        let call_info = CallInfo::new(lua.proto.clone(), &context.ci().upvalues, &context.stack);
+        context.call_info.push(call_info);
     }
 }
 
@@ -177,8 +174,8 @@ impl LoadInstruction for Return {
 }
 
 impl InstructionOps for Return {
-    fn exec(&self, _: &mut Context) {
-        // TODO: implement Return.exec
+    fn exec(&self, context: &mut Context) {
+        context.call_info.pop();
     }
 
     fn debug_info(&self, _: InstructionContext) -> Vec<String> {
