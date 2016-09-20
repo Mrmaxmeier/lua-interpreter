@@ -18,4 +18,5 @@ assert(t[{}] == nil)
 
 t[table1] = "accessable memory"
 table1["modified"] = true
+assert(copied["modified"] == true)
 assert(t[copied] == "accessable memory")

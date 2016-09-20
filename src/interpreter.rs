@@ -4,7 +4,7 @@ use function_block::FunctionBlock;
 use env::Environment;
 use types::Type;
 use stack::Stack;
-use upvalues::Upvalues;
+use upvalues::UpvalueIndex;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PC {
@@ -48,11 +48,12 @@ pub struct RunResult {
 pub struct CallInfo {
     pub pc: PC,
     pub func: FunctionBlock,
-    pub upvalues: Upvalues,
+    pub upvalues: Vec<Type>,
 }
 
 impl CallInfo {
     pub fn new(func: FunctionBlock, env: Type) -> Self {
+        // FIXME don't special-case _ENV
         let upvalues = if let Some(upval) = func.upvalues.get(0) {
             assert_eq!(upval.name, Some("_ENV".into()));
             assert_eq!(upval.instack, true);
@@ -65,6 +66,10 @@ impl CallInfo {
             upvalues: upvalues,
             func: func
         }
+    }
+
+    pub fn upvalue(&self, upval: UpvalueIndex) -> &Type {
+        &self.upvalues[upval.index as usize]
     }
 }
 

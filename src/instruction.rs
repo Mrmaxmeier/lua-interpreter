@@ -4,6 +4,7 @@ use parser::*;
 use function_block::FunctionBlock;
 use debug::DebugData;
 use byteorder;
+use upvalues::UpvalueIndex;
 pub use types::{Type, Representable};
 pub use interpreter::Context;
 pub use stack::{StackEntry, Stack};
@@ -94,6 +95,7 @@ impl Instruction {
             Instruction::LOADBOOL,
             Instruction::LOADNIL,
             Instruction::GETTABUP,
+            Instruction::SETTABUP,
             Instruction::GETTABLE,
             Instruction::SETTABLE,
             Instruction::NEWTABLE,
@@ -257,27 +259,6 @@ impl From<usize> for DataSource {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct UpvalueIndex (i64);
-
-impl UpvalueIndex {
-    pub fn load(val: usize) -> Self {
-        UpvalueIndex(
-            if val >= 0b1_0000_0000 {
-                -(val as i64 & 0xFF)
-            } else {
-                val as i64
-            }
-        )
-    }
-}
-
-impl From<usize> for UpvalueIndex {
-    fn from(other: usize) -> Self {
-        UpvalueIndex::load(other)
-    }
-}
-
 pub struct InstructionContext<'a> {
     pub index: usize,
     pub func: &'a FunctionBlock,
@@ -299,13 +280,13 @@ impl<'a> InstructionContext<'a> {
     }
 
     pub fn pretty_upval(&self, u: UpvalueIndex) -> Option<String> {
-        (if u.0 < 0 {
+        (if u.index < 0 {
             None
         } else {
-            Some(u.0 as usize)
+            Some(u.index as usize)
         })
             .map(|i| &self.debug.upvalue_names[i])
-            .map(|name| format!("{} = {}", u.0, name))
+            .map(|name| format!("{} = {}", u.index, name))
     }
 }
 
@@ -354,6 +335,6 @@ mod tests {
         let data = &[0b00000110, 0b00000000, 0b01000000, 0];
         let mut reader = Cursor::new(data);
         let instruction = Instruction::parse(&mut reader);
-        assert_eq!(instruction, Instruction::GETTABUP(GetTabUp { reg: 0, upvalue: 0, constant: DataSource::Constant(0) }));
+        assert_eq!(instruction, Instruction::GETTABUP(GetTabUp { reg: 0, upvalue: 0.into(), constant: DataSource::Constant(0) }));
     }
 }
