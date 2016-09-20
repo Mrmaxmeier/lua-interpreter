@@ -2,12 +2,11 @@ use std::ops;
 use std::ops::{Index, IndexMut};
 use std::fmt;
 
-use types::{Type, SharedType, Representable};
+use types::{Type, Representable};
 
 #[derive(Debug, Clone)]
 pub enum StackEntry {
     Type(Type),
-    SharedType(SharedType),
     // TODO: stack barriers / guards?
 }
 
@@ -15,7 +14,6 @@ impl StackEntry {
     pub fn as_type(&self) -> Type {
         match *self {
             StackEntry::Type(ref t) => t.clone(),
-            StackEntry::SharedType(ref t) => (*t).lock().clone(),
         }
     }
 }

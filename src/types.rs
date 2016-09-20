@@ -1,13 +1,13 @@
-use std::collections::HashMap;
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 use parking_lot::Mutex;
 
 use parser::*;
 use function::*;
+use table::*;
 
-pub type SharedType = Arc<Mutex<Type>>;
-pub type LuaTable = HashMap<String, Type>;
+pub type Shared<T> = Arc<Mutex<T>>;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Number {
@@ -24,6 +24,7 @@ impl Into<f64> for Number {
     }
 }
 
+impl Eq for Number {}
 impl PartialEq for Number {
     fn eq(&self, other: &Number) -> bool {
         if let (&Number::Integer(a), &Number::Integer(b)) = (self, other) {
@@ -32,6 +33,18 @@ impl PartialEq for Number {
             let a: f64 = (*self).into();
             let b: f64 = (*other).into();
             a == b
+        }
+    }
+}
+
+impl Ord for Number {
+    fn cmp(&self, other: &Number) -> ::std::cmp::Ordering {
+        if let (&Number::Integer(a), &Number::Integer(b)) = (self, other) {
+            a.cmp(&b)
+        } else {
+            let a: f64 = (*self).into();
+            let b: f64 = (*other).into();
+            a.partial_cmp(&b).unwrap()
         }
     }
 }
@@ -48,7 +61,18 @@ impl PartialOrd for Number {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)] // TODO: lua-sensitive code should'nt use the derived PartialEq
+impl Hash for Number {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        // TODO: use f64 hash func
+        let val: f64 = match *self {
+            Number::Integer(i) => (i as f64),
+            Number::Float(f) => f,
+        };
+        format!("{}", val).hash(state); // FIXME
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)] // TODO: lua-sensitive code should'nt use the derived PartialEq
 pub enum Type {
     Nil,
     Boolean(bool),
@@ -100,7 +124,8 @@ impl Representable for Type {
             Type::String(ref s) => format!("{:?}", s),
             Type::Number(ref n) => n.repr(),
             Type::Function(ref f) => f.repr(),
-            _ => panic!("repr not implemented for {:?}", self)
+            Type::Table(ref t) => format!("table: {:p}", t),
+            // _ => panic!("repr not implemented for {:?}", self)
         }
     }
 }
@@ -112,6 +137,17 @@ impl Representable for Number {
             Number::Float(ref f) => format!("{}", f),
         }
     }
+}
+
+#[macro_export]
+macro_rules! as_type_variant {
+    ($typ:expr, $extract:path) => (
+        if let $extract(val) = $typ {
+            val
+        } else {
+            panic!("couldn't extract {} from {:?}", stringify!($extract), $typ)
+        }
+    )
 }
 
 impl<'a> From<&'a str> for Type {

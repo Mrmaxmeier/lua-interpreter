@@ -1,4 +1,5 @@
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 use parking_lot::Mutex;
 
@@ -65,12 +66,31 @@ impl From<NativeFunction> for Function {
     }
 }
 
+impl Eq for Function {}
 impl PartialEq for Function {
     fn eq(&self, other: &Self) -> bool {
         if let (&Function::Lua(ref f_self), &Function::Lua(ref f_other)) = (self, other) {
             return f_self == f_other
         }
         false
+    }
+}
+
+impl Ord for Function {
+    fn cmp(&self, other: &Function) -> ::std::cmp::Ordering {
+        unimplemented!()
+    }
+}
+
+impl PartialOrd for Function {
+    fn partial_cmp(&self, other: &Function) -> Option<::std::cmp::Ordering> {
+        unimplemented!()
+    }
+}
+
+impl Hash for Function {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        unimplemented!()
     }
 }
 

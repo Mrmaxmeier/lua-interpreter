@@ -1,5 +1,6 @@
 #![feature(box_syntax)]
 #![feature(question_mark)]
+#![feature(ptr_eq)]
 #![feature(test)]
 extern crate test;
 
@@ -7,8 +8,9 @@ extern crate regex;
 extern crate byteorder;
 extern crate parking_lot;
 
-pub mod types;
+#[macro_use] pub mod types;
 pub mod function;
+pub mod table;
 
 pub mod interpreter;
 pub mod stack;

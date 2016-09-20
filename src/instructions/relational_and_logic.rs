@@ -42,6 +42,7 @@ fn attempted_to_compare(a: &Type, b: &Type) -> String {
 logic!(Equals, |a, b| -> Result<bool, String> {
     Ok(a == b)
 });
+
 // 32: LT       A B C   if ((RK(B) <  RK(C)) ~= A) then pc++
 logic!(LessThan, |a, b| {
     if let (&Type::Number(ref a_num), &Type::Number(ref b_num)) = (&a, &b) {
