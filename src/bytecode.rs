@@ -37,8 +37,6 @@ mod tests {
     use upvalues::Upvalue;
     use std::io::Cursor;
     use parser::Parsable;
-    use instructions;
-    use instruction::Instruction;
     use types::{Type, Number};
     use regex::Regex;
 
@@ -109,9 +107,6 @@ mod tests {
         assert_eq!(result.lines, (0, 0));
         assert_eq!(result.amount_parameters, 0);
         assert_eq!(result.stack_size, 2);
-        assert_eq!(result.instructions, vec![
-            Instruction::RETURN(instructions::Return{a: 0, b: 1})
-        ]);
         assert_eq!(result.constants, vec![]);
         assert_eq!(result.protos, vec![]);
         assert_eq!(result.upvalues, vec![

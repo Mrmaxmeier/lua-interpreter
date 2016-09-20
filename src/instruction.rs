@@ -241,9 +241,7 @@ pub enum DataSource {
 impl DataSource {
     pub fn get_from(&self, i: &mut Context) -> Type {
         match *self {
-            DataSource::Register(index) => match i.stack[index] {
-                StackEntry::Type(ref t) => t.clone(),
-            },
+            DataSource::Register(index) => i.stack[index].as_type(),
             DataSource::Constant(index) => i.ci().func.constants[index].clone()
         }
     }
@@ -327,7 +325,7 @@ mod tests {
         let data = &[0x26, 0x00, 0x80, 0x00];
         let mut reader = Cursor::new(data);
         let instruction = Instruction::parse(&mut reader);
-        assert_eq!(instruction, Instruction::RETURN(Return {a: 0, b: 1}));
+        assert_eq!(instruction, Instruction::RETURN(Return {base: 0, count: Count::Known(0)}));
     }
 
     #[test]

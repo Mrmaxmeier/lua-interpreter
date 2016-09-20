@@ -137,8 +137,6 @@ mod tests {
     use std::io::Cursor;
     use types::Type;
     use header::Header;
-    use instructions;
-    use instruction::Instruction;
     use upvalues::Upvalue;
     use parser::{Parsable, ReadExt};
 
@@ -156,10 +154,6 @@ mod tests {
         assert_eq!(result.source_name, Some("@assignment.lua".to_owned()));
         assert_eq!(result.lines, (0, 0));
         assert_eq!(result.stack_size, 2);
-        assert_eq!(result.instructions, vec![
-            Instruction::LOADK(instructions::LoadK {local: 0, constant: 0}),
-            Instruction::RETURN(instructions::Return {a: 0, b: 1}),
-        ]);
         assert_eq!(result.constants, vec![
             Type::String("zweiundvierzig".into())
         ]);

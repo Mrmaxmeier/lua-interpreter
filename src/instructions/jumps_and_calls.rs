@@ -3,6 +3,7 @@ use function;
 use function::{Function, NativeFunction};
 use interpreter::CallInfo;
 use std::sync::Arc;
+use std::mem;
 use parking_lot::Mutex;
 
 // 30: JMP      A sBx   pc += sBx; if (A) close all upvalues >= R(A - 1)
@@ -104,21 +105,29 @@ impl Call {
     }
 
     fn call_lua(&self, context: &mut Context, lua: function::LuaFunction) {
+        context.ci_mut().pc += -1isize; // re-run this instruction once call has finished
         let call_info = CallInfo::new(lua.proto.clone(), &context.ci().upvalues, &context.stack);
         context.call_info.push(call_info);
+        context.stack.insert_barrier();
+    }
+
+    fn finish_lua_call(&self, context: &mut Context, returns: Vec<Type>) {
+        let start = self.function;
+        let range = match self.returns {
+            Count::Unknown => start..context.stack.top(),
+            Count::Known(count) => start..start + count,
+        };
+        for (i, ret) in range.zip(returns) {
+            context.stack[i] = ret.into();
+        } 
     }
 }
 
 impl InstructionOps for Call {
     fn exec(&self, context: &mut Context) {
-        println!("Call::exec function: {:?}", context.stack[self.function]);
-        let param_start = self.function + 1;
-        {
-            let params = match self.params {
-                Count::Unknown => &context.stack[param_start..context.stack.top()],
-                Count::Known(count) => &context.stack[param_start..param_start + count],
-            };
-            println!("calling with params: {:?}", params);
+        if let Some(returns) = mem::replace(&mut context.ci_mut()._subcall_returns, None) {
+            self.finish_lua_call(context, returns);
+            return
         }
         if let StackEntry::Type(Type::Function(func)) = context.stack[self.function].clone() {
             match func {
@@ -161,27 +170,41 @@ impl LoadInstruction for Tailcall {
 // RETURN also closes any open upvalues, equivalent to a CLOSE instruction.
 // See the CLOSE instruction for more information.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Return { pub a: Reg, pub b: Reg }
+pub struct Return { pub base: Reg, pub count: Count }
 
 impl LoadInstruction for Return {
     fn load(d: u32) -> Self {
         let (a, b) = parse_A_B(d);
         Return {
-            a: a,
-            b: b,
+            base: a,
+            count: b.into(),
         }
     }
 }
 
 impl InstructionOps for Return {
     fn exec(&self, context: &mut Context) {
-        context.call_info.pop();
+        if let Some(_) = context.call_info.pop() {
+            let return_range = match self.count {
+                Count::Unknown => {
+                    unimplemented!()
+                },
+                Count::Known(count) => {
+                    self.base..self.base + count
+                }
+            };
+            let returns: Vec<_> = return_range.map(|index| context.stack[index].as_type()).collect();
+            context.stack.pop_barrier();
+            if !context.call_info.is_empty() {
+                context.ci_mut()._subcall_returns = Some(returns)
+            }
+        }
     }
 
     fn debug_info(&self, _: InstructionContext) -> Vec<String> {
-        if self.b == 0 {
+        if self.count == Count::Unknown {
             vec!["return to top".to_owned()]
-        } else if self.b == 1 {
+        } else if self.count == Count::Known(0) {
             vec!["no return values".to_owned()]
         } else {
             unimplemented!()

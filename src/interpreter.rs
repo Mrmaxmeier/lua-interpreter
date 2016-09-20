@@ -49,6 +49,7 @@ pub struct CallInfo {
     pub pc: PC,
     pub func: FunctionBlock,
     pub upvalues: Vec<Type>,
+    pub _subcall_returns: Option<Vec<Type>>,
 }
 
 impl CallInfo {
@@ -66,7 +67,8 @@ impl CallInfo {
         CallInfo {
             pc: PC::new(func.instructions.clone()),
             upvalues: upvalues,
-            func: func
+            func: func,
+            _subcall_returns: None
         }
     }
 
@@ -214,6 +216,14 @@ mod tests {
         assert_eq!(rx.recv().unwrap(), "outside a");
         assert_eq!(rx.recv().unwrap(), "inside a");
         assert_eq!(rx.recv().unwrap(), "after a");
+    }
+
+    #[test]
+    fn calculates_gcds_correctly() {
+        let (mut interpreter, rx) = interpreter_from_bytes(include_bytes!("../fixtures/gcd"));
+        interpreter.run_debug();
+        assert_eq!(rx.recv().unwrap(), "recursive_gcd(99, 56) = 1");
+        assert_eq!(rx.recv().unwrap(), "gcd(123, 456) = 3");
     }
 
     #[test]
