@@ -122,6 +122,7 @@ impl Instruction {
             Instruction::LT,
             Instruction::TEST,
             Instruction::CALL,
+            Instruction::TAILCALL,
             Instruction::RETURN,
             Instruction::FORLOOP,
             Instruction::FORPREP,

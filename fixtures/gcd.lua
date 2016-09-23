@@ -2,7 +2,7 @@ function recursive_gcd(a, b)
   if b == 0 then
     return a
   else
-    return recursive_gcd(b, a % b)
+    return recursive_gcd(b, a % b) -- TAILCALL
   end
 end
 

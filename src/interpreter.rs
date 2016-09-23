@@ -87,10 +87,12 @@ impl Context {
     pub fn new() -> Self { Self::default() }
     
     pub fn ci(&self) -> &CallInfo {
+        assert!(!self.call_info.is_empty());
         &self.call_info[self.call_info.len() - 1]
     }
 
     pub fn ci_mut(&mut self) -> &mut CallInfo {
+        assert!(!self.call_info.is_empty());
         let index = self.call_info.len() - 1;
         &mut self.call_info[index]
     }

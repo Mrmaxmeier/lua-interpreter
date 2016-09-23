@@ -1,7 +1,7 @@
 use instruction::*;
 use function;
 use function::{Function, NativeFunction};
-use interpreter::CallInfo;
+use interpreter::{CallInfo, PC};
 use std::sync::Arc;
 use std::mem;
 use parking_lot::Mutex;
@@ -108,7 +108,16 @@ impl Call {
         context.ci_mut().pc += -1isize; // re-run this instruction once call has finished
         let call_info = CallInfo::new(lua.proto.clone(), &context.ci().upvalues, &context.stack);
         context.call_info.push(call_info);
+        let param_start = self.function + 1;
+        let param_range = match self.params {
+            Count::Unknown => param_start..context.stack.top(),
+            Count::Known(count) => param_start..param_start + count,
+        };
+        let params = param_range.map(|i| context.stack[i].as_type()).collect::<Vec<_>>();
         context.stack.insert_barrier();
+        for (i, param) in params.iter().enumerate() {
+            context.stack[i] = param.clone().into()
+        }
     }
 
     fn finish_lua_call(&self, context: &mut Context, returns: Vec<Type>) {
@@ -144,8 +153,8 @@ impl InstructionOps for Call {
 // 37 TAILCALL  A B C   return R(A)(R(A+1), ... ,R(A+B-1))
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Tailcall {
-    pub a: Reg,
-    pub b: Reg,
+    pub function: Reg,
+    pub params: Count,
     pub c: Reg,
 }
 
@@ -153,9 +162,32 @@ impl LoadInstruction for Tailcall {
     fn load(d: u32) -> Self {
         let (a, b, c) = parse_A_B_C(d);
         Tailcall {
-            a: a,
-            b: b,
+            function: a,
+            params: b.into(),
             c: c,
+        }
+    }
+}
+
+impl InstructionOps for Tailcall {
+    fn exec(&self, context: &mut Context) {
+        let param_start = self.function + 1;
+        let param_range = match self.params {
+            Count::Unknown => param_start..context.stack.top(),
+            Count::Known(count) => param_start..param_start + count,
+        };
+        let params = param_range.map(|i| context.stack[i].as_type()).collect::<Vec<_>>();
+        if let StackEntry::Type(Type::Function(Function::Lua(func))) = context.stack[self.function].clone() {
+            let mut ci = context.ci_mut();
+            ci.pc = PC::new(func.proto.instructions.clone());
+            ci.func = func.proto;
+        } else {
+            panic!("Tailcall function must be of type Function::Lua (got {:?})", context.stack[self.function])
+        }
+        context.stack.pop_barrier();
+        context.stack.insert_barrier();
+        for (i, param) in params.iter().enumerate() {
+            context.stack[i] = param.clone().into()
         }
     }
 }
