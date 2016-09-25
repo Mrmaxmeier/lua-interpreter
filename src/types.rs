@@ -97,6 +97,14 @@ impl Type {
             Type::Function(_) => "function",
         }
     }
+
+    pub fn truethy(&self) -> bool {
+        match *self {
+            Type::Nil => false,
+            Type::Boolean(v) => v,
+            _ => true
+        }
+    }
 }
 
 impl fmt::Display for Type {

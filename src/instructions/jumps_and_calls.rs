@@ -37,14 +37,14 @@ impl InstructionOps for Jmp {
 // For the fall-through case, a JMP is always expected, in order to optimize execution in the virtual machine.
 // In effect, TEST and TESTSET must always be paired with a following JMP instruction.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Test { pub value: Reg, constant: Reg }
+pub struct Test { pub value: Reg, constant: bool }
 
 impl LoadInstruction for Test {
     fn load(d: u32) -> Self {
         let (a, _, c) = parse_A_B_C(d);
         Test {
             value: a,
-            constant: c
+            constant: c > 0
         }
     }
 }
@@ -53,10 +53,38 @@ impl InstructionOps for Test {
     fn exec(&self, context: &mut Context) {
         let jump = {
             let val = &context.stack[self.value].as_type();
-            let constant = &context.ci().func.constants[self.constant];
-            val == constant // TODO: check lua spec
+            val.truethy() != self.constant
         };
         if jump {
+            context.ci_mut().pc += 1;
+        }
+    }
+}
+
+// 35: TESTSET  A B C   if (R(B) <=> C) then R(A) := R(B) else pc++
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct TestSet { pub value: Reg, pub other: Reg, pub constant: bool }
+
+impl LoadInstruction for TestSet {
+    fn load(d: u32) -> Self {
+        let (a, b, c) = parse_A_B_C(d);
+        TestSet {
+            value: a,
+            other: b,
+            constant: c > 0,
+        }
+    }
+}
+
+impl InstructionOps for TestSet {
+    fn exec(&self, context: &mut Context) {
+        let eq = {
+            let val = &context.stack[self.value].as_type();
+            val.truethy() != self.constant
+        };
+        if eq {
+            context.stack[self.value] = context.stack[self.other].as_type().into();
+        } else {
             context.ci_mut().pc += 1;
         }
     }
@@ -113,7 +141,10 @@ impl Call {
             Count::Unknown => param_start..context.stack.top(),
             Count::Known(count) => param_start..param_start + count,
         };
-        let params = param_range.map(|i| context.stack[i].as_type()).collect::<Vec<_>>();
+        let mut params = param_range.map(|i| context.stack[i].as_type()).collect::<Vec<_>>();
+        while params.len() < lua.proto.amount_parameters as usize {
+            params.push(Type::Nil);
+        }
         context.stack.insert_barrier();
         for (i, param) in params.iter().enumerate() {
             context.stack[i] = param.clone().into()
@@ -176,8 +207,12 @@ impl InstructionOps for Tailcall {
             Count::Unknown => param_start..context.stack.top(),
             Count::Known(count) => param_start..param_start + count,
         };
-        let params = param_range.map(|i| context.stack[i].as_type()).collect::<Vec<_>>();
+        let mut params = param_range.map(|i| context.stack[i].as_type()).collect::<Vec<_>>();
+
         if let StackEntry::Type(Type::Function(Function::Lua(func))) = context.stack[self.function].clone() {
+            while params.len() < func.proto.amount_parameters as usize {
+                params.push(Type::Nil);
+            }
             let mut ci = context.ci_mut();
             ci.pc = PC::new(func.proto.instructions.clone());
             ci.func = func.proto;
