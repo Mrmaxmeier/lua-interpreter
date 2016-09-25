@@ -34,4 +34,10 @@ assert(four | twenty == 20) -- band
 assert(one | four == 5) -- bor
 assert(four ~ twenty == 16) -- bxor
 
+
+-- TESTSET
+assert(false or true == true)
+assert(nil or "a" == "a")
+assert({} or nil ~= nil)
+
 -- TODO: test tables, closures, branches, loops
