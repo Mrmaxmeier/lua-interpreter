@@ -7,3 +7,4 @@ version = "0.1.0"
 byteorder = "0.5.3"
 parking_lot = {version = "0.3", features = ["nightly"]}
 regex = "0.1.73"
+clap = "2.13.0"
