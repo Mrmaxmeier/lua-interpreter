@@ -100,10 +100,12 @@ impl Index<ops::Range<usize>> for Stack {
 impl IndexMut<usize> for Stack {
     #[inline]
     fn index_mut(&mut self, index: usize) -> &mut StackEntry {
-        if self._stack.len() < index + 1 + self._closure_base_cache {
+        let abs = index + self._closure_base_cache;
+        if self._stack.len() <= abs {
             self._stack.push(StackEntry::Type(Type::Nil))
         }
-        &mut self._stack[index + self._closure_base_cache]
+        assert!(abs < self._stack.len());
+        &mut self._stack[abs]
     }
 }
 

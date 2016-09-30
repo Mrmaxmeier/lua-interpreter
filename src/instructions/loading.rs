@@ -43,7 +43,16 @@ impl InstructionOps for LoadK {
 
     fn debug_info(&self, c: InstructionContext) -> Vec<String> {
         c.filter(vec![
-            c.debug.locals.get(self.local as usize).map(|local| format!("{} = {}", self.local, local)),
+            c.debug.locals
+                .get(self.local as usize)
+                .map(|local| {
+                    let local_in_range = local.startpc <= c.index as u32 && local.endpc >= c.index as u32;
+                    if local_in_range {
+                        format!("{} = {}", self.local, local)
+                    } else {
+                        format!("{}", self.local)
+                    }
+                }),
             c.pretty_constant(DataSource::Constant(self.constant)),
         ])
     }

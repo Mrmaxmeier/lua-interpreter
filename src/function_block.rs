@@ -69,7 +69,7 @@ impl FunctionBlock {
         if let Some(ref debug) = self.debug {
             self.pretty_section(w, "local", debug.locals.len())?;
             for (i, local) in debug.locals.iter().enumerate() {
-                writeln!(w, "\t{}\t{:?}", i + 1, local)?;
+                writeln!(w, "\t{}\t[{}-{}]\t{}", i + 1, local.startpc, local.endpc, local.varname)?;
             };
         };
         self.pretty_section(w, "upvalue", self.upvalues.len())?;

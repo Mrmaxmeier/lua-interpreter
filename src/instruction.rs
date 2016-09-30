@@ -4,7 +4,6 @@ use parser::*;
 use function_block::FunctionBlock;
 use debug::DebugData;
 use byteorder;
-use upvalues::UpvalueIndex;
 pub use types::{Type, Representable};
 pub use interpreter::Context;
 pub use stack::{StackEntry, Stack};
@@ -42,6 +41,7 @@ pub enum Instruction {
     LOADK(LoadK),
     LOADBOOL(LoadBool),
     LOADNIL(LoadNil),
+    GETUPVAL(GetUpval),
     GETTABUP(GetTabUp),
     SETTABUP(SetTabUp),
     GETTABLE(GetTable),
@@ -95,6 +95,7 @@ impl Instruction {
             Instruction::LOADK,
             Instruction::LOADBOOL,
             Instruction::LOADNIL,
+            Instruction::GETUPVAL,
             Instruction::GETTABUP,
             Instruction::SETTABUP,
             Instruction::GETTABLE,
@@ -150,7 +151,7 @@ impl Parsable for Instruction {
             // TODO: 2 LOADKX
             03 => Instruction::LOADBOOL(LoadBool::load(data)),
             04 => Instruction::LOADNIL(LoadNil::load(data)),
-            // TODO: 5 GETUPVAL
+            05 => Instruction::GETUPVAL(GetUpval::load(data)),
             06 => Instruction::GETTABUP(GetTabUp::load(data)),
             07 => Instruction::GETTABLE(GetTable::load(data)),
             08 => Instruction::SETTABUP(SetTabUp::load(data)),
@@ -280,14 +281,8 @@ impl<'a> InstructionContext<'a> {
             .map(|(i, constant)| format!("{} = {}", i, constant.repr()))
     }
 
-    pub fn pretty_upval(&self, u: UpvalueIndex) -> Option<String> {
-        (if u.index < 0 {
-            None
-        } else {
-            Some(u.index as usize)
-        })
-            .map(|i| &self.debug.upvalue_names[i])
-            .map(|name| format!("{} = {}", u.index, name))
+    pub fn pretty_upval(&self, index: usize) -> Option<String> {
+        Some(format!("{} = {}", index, self.debug.upvalue_names[index]))
     }
 }
 
@@ -336,6 +331,6 @@ mod tests {
         let data = &[0b00000110, 0b00000000, 0b01000000, 0];
         let mut reader = Cursor::new(data);
         let instruction = Instruction::parse(&mut reader);
-        assert_eq!(instruction, Instruction::GETTABUP(GetTabUp { reg: 0, upvalue: 0.into(), constant: DataSource::Constant(0) }));
+        assert_eq!(instruction, Instruction::GETTABUP(GetTabUp { reg: 0, upvalue: 0, constant: DataSource::Constant(0) }));
     }
 }

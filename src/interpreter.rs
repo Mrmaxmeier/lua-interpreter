@@ -4,7 +4,6 @@ use function_block::FunctionBlock;
 use env::Environment;
 use types::Type;
 use stack::Stack;
-use upvalues::UpvalueIndex;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PC {
@@ -70,10 +69,6 @@ impl CallInfo {
             func: func,
             _subcall_returns: None
         }
-    }
-
-    pub fn upvalue(&self, upval: UpvalueIndex) -> &Type {
-        &self.upvalues[upval.index as usize]
     }
 }
 
@@ -234,6 +229,13 @@ mod tests {
         interpreter.run_debug();
         assert_eq!(rx.recv().unwrap(), "true is truthy");
         assert_eq!(rx.recv().unwrap(), "false is falsey");
+    }
+
+    #[test]
+    fn calculates_n_queens_solution() {
+        let (mut interpreter, rx) = interpreter_from_bytes(include_bytes!("../fixtures/n_queens"));
+        interpreter.run_debug();
+        assert_eq!(rx.recv().unwrap(), "TODO");
     }
 
     #[test]

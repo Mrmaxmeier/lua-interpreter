@@ -63,14 +63,14 @@ impl InstructionOps for Test {
 
 // 35: TESTSET  A B C   if (R(B) <=> C) then R(A) := R(B) else pc++
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct TestSet { pub value: Reg, pub other: Reg, pub constant: bool }
+pub struct TestSet { pub reg: Reg, pub value: Reg, pub constant: bool }
 
 impl LoadInstruction for TestSet {
     fn load(d: u32) -> Self {
         let (a, b, c) = parse_A_B_C(d);
         TestSet {
-            value: a,
-            other: b,
+            reg: a,
+            value: b,
             constant: c > 0,
         }
     }
@@ -79,11 +79,11 @@ impl LoadInstruction for TestSet {
 impl InstructionOps for TestSet {
     fn exec(&self, context: &mut Context) {
         let eq = {
-            let val = &context.stack[self.value].as_type();
-            val.truethy() != self.constant
+            let value = &context.stack[self.value].as_type();
+            value.truethy() != self.constant
         };
         if eq {
-            context.stack[self.value] = context.stack[self.other].as_type().into();
+            context.stack[self.reg] = context.stack[self.value].as_type().into();
         } else {
             context.ci_mut().pc += 1;
         }
@@ -274,7 +274,7 @@ impl InstructionOps for Return {
         } else if self.count == Count::Known(0) {
             vec!["no return values".to_owned()]
         } else {
-            unimplemented!()
+            vec![format!("return {:?}", self.count)]
         }
     }
 }

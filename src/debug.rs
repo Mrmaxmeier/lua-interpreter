@@ -5,9 +5,9 @@ use std::fmt;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Local {
-    varname: String,
-    startpc: u32,
-    endpc: u32,
+    pub varname: String,
+    pub startpc: u32,
+    pub endpc: u32,
 }
 
 impl fmt::Display for Local {
