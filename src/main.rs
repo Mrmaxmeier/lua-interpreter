@@ -6,11 +6,8 @@ use lua_interpreter::parser::Parsable;
 
 use std::fs::File;
 use std::io::Cursor;
+use std::process::Command;
 
-/*
-TODOS:
-- compile .lua files using luac
-*/
 extern crate clap;
 use clap::{Arg, App};
 
@@ -35,7 +32,7 @@ fn main() {
                                .help("Prettyprints bytecode data"))
                           .get_matches();
 
-    let file_path = matches.value_of("INPUT").unwrap();
+    let mut file_path = matches.value_of("INPUT").unwrap();
     println!("Using input file: {}", file_path);
 
     match matches.occurrences_of("v") {
@@ -51,6 +48,17 @@ fn main() {
         } else {
             println!("Printing normally...");
         }
+    }
+
+    if file_path.ends_with(".lua") {
+        let compile_output = Command::new("luac")
+            .arg("-o")
+            .arg("/tmp/luac.out")
+            .arg(file_path)
+            .output()
+            .unwrap();
+        println!("{:?}", compile_output);
+        file_path = &"/tmp/luac.out";
     }
 
     let mut f = File::open(file_path).unwrap();

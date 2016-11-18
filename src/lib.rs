@@ -1,5 +1,4 @@
 #![feature(box_syntax)]
-#![feature(question_mark)]
 #![feature(ptr_eq)]
 #![feature(test)]
 extern crate test;
