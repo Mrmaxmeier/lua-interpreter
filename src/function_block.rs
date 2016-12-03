@@ -77,6 +77,9 @@ impl FunctionBlock {
             writeln!(w, "\t{}\t{:?}", i + 1, upvalue)?;
         };
         for subblock in &self.protos {
+            if let Some(ref name) = subblock.source_name {
+                write!(w, "\nfunction <{}:{}-{}> ", name, subblock.lines.0, subblock.lines.1)?;
+            }
             subblock.pretty_print(w)?;
         }
         Ok(())

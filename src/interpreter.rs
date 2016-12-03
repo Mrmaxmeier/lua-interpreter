@@ -121,13 +121,30 @@ impl Interpreter {
 
     pub fn step(&mut self) {
         let instruction = *self.pc().current();
-        // println!("{:?}", instruction);
         self.context.ci_mut().pc += 1;
         instruction.exec(&mut self.context);
     }
 
+    fn print_current_line(&self) {
+        let func = &self.context.ci().func;
+        if let Some(ref debug) = func.debug {
+            match func.source_name {
+                Some(ref name) => match debug.line_info.get(self.pc()._pc) {
+                    Some(line) => {
+                        let current = func.lines.0 + *line as usize;
+                        print!(" {}:{};", name, current)
+                    },
+                    None => print!(" {}:?;", name),
+                },
+                None => print!(" @?:?;"),
+            }
+        }
+    }
+
     pub fn debug(&mut self) {
-        println!("pc: {}; {:?}", self.pc()._pc, self.pc().current());
+        print!("pc: {};", self.pc()._pc);
+        self.print_current_line();
+        println!(" {:?}", self.pc().current());
         self.step();
         println!("stack: {}", self.context.stack.repr());
     }

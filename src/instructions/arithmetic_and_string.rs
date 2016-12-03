@@ -29,7 +29,7 @@ macro_rules! arith {
                     let result = $op(*b, *c);
                     context.stack[self.a] = StackEntry::Type(Type::Number(result));
                 } else {
-                    panic!("invalid types, expected numbers ({}, {})", b.as_type_str(), c.as_type_str())
+                    panic!("attempt to perform arithmetic on ({}, {})", b.as_type_str(), c.as_type_str())
                 }
             }
         }
