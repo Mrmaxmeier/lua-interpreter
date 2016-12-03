@@ -187,7 +187,6 @@ impl Parsable for Instruction {
             38 => Instruction::RETURN(Return::load(data)),
             39 => Instruction::FORLOOP(ForLoop::load(data)),
             40 => Instruction::FORPREP(ForPrep::load(data)),
-            // TODO: 40 FORPREP
             // TODO: 41 TFORCALL
             // TODO: 42 TFORLOOP
             // TODO: 43 SETLIST

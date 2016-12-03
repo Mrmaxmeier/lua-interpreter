@@ -251,7 +251,7 @@ impl LoadInstruction for Return {
 
 impl InstructionOps for Return {
     fn exec(&self, context: &mut Context) {
-        if let Some(_) = context.call_info.pop() {
+        if context.call_info.pop().is_some() {
             let return_range = match self.count {
                 Count::Unknown => {
                     unimplemented!()

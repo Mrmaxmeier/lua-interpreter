@@ -58,7 +58,7 @@ fn main() {
             .output()
             .unwrap();
         println!("{:?}", compile_output);
-        file_path = &"/tmp/luac.out";
+        file_path = "/tmp/luac.out";
     }
 
     let mut f = File::open(file_path).unwrap();
