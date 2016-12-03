@@ -153,7 +153,6 @@ mod tests {
     }
 
 
-    #[ignore]
     #[test]
     fn pretty_prints_hello_world() {
         let data = include_bytes!("../fixtures/hello_world");
@@ -169,7 +168,7 @@ main <@hello_world.lua> Lua (5, 3)
 \t  1\t GetTabUp { reg: 0, upvalue: 0, constant: Constant(0) }   \t ; 0 = _ENV, 0 = "print"
 \t  2\t LoadK { local: 1, constant: 1 }                          \t ; 1 = "Hello, World!"
 \t  3\t Call { function: 0, params: Known(1), returns: Known(0) }\t ; 
-\t  4\t Return { a: 0, b: 1 }                                    \t ; no return values
+\t  4\t Return { base: 0, count: Known(0) }                      \t ; no return values
 
 [2 constants]
 \t  1\t  "print"
@@ -206,7 +205,7 @@ main <@a_bunch_of_constants.lua> Lua (5, 3)
 \t  3\t LoadK { local: 0, constant: 0 }              \t ; 0 = a, 0 = 42
 \t  4\t LoadK { local: 0, constant: 1 }              \t ; 0 = a, 1 = -0.08333333333
 \t  5\t LoadK { local: 0, constant: 2 }              \t ; 0 = a, 2 = "TSHRSTR"
-\t  6\t Return { a: 0, b: 1 }                        \t ; no return values
+\t  6\t Return { base: 0, count: Known(0) }          \t ; no return values
 
 [3 constants]
 \t  1\t  42
@@ -214,8 +213,7 @@ main <@a_bunch_of_constants.lua> Lua (5, 3)
 \t  3\t  "TSHRSTR"
 
 [1 local]
-\t  1\t  Local { varname: "a", startpc: 1, endpc: 6 }
-
+\t  1\t  [1-6]\t a
 "#);
         let result_lines = pprint_result.lines()
             .map(|s| s.to_owned())
@@ -223,7 +221,6 @@ main <@a_bunch_of_constants.lua> Lua (5, 3)
         assert_multiline_eq(result_lines, expected_lines);
     }
 
-    #[ignore]
     #[test]
     fn pretty_if_conditions() {
         let data = include_bytes!("../fixtures/if_conditions");
