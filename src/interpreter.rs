@@ -4,6 +4,7 @@ use function_block::FunctionBlock;
 use env::Environment;
 use types::Type;
 use stack::Stack;
+use std::ops::AddAssign;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PC {
@@ -33,7 +34,7 @@ impl PC {
     pub fn skip(&mut self, n: usize) { *self += n as isize }
 }
 
-impl ::std::ops::AddAssign<isize> for PC {
+impl AddAssign<isize> for PC {
     fn add_assign(&mut self, _rhs: isize) {
         self._pc = (self._pc as isize + _rhs) as usize;
     }
