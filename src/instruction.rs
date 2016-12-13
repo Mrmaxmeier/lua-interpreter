@@ -307,7 +307,6 @@ mod tests {
     use super::*;
     use std::io::Cursor; 
     use parser::Parsable;
-    use instructions::*;
 
     #[test]
     fn get_bits_works() {
