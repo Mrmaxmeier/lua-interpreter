@@ -219,6 +219,7 @@ impl InstructionOps for Tailcall {
         } else {
             panic!("Tailcall function must be of type Function::Lua (got {:?})", context.stack[self.function])
         }
+        context.close_upvalues();
         context.stack.pop_barrier();
         context.stack.insert_barrier();
         for (i, param) in params.iter().enumerate() {
@@ -261,6 +262,9 @@ impl InstructionOps for Return {
                 }
             };
             let returns: Vec<_> = return_range.map(|index| context.stack[index].as_type()).collect();
+            if !context.call_info.is_empty() {            
+                context.close_upvalues();
+            }
             context.stack.pop_barrier();
             if !context.call_info.is_empty() {
                 context.ci_mut()._subcall_returns = Some(returns)

@@ -3,7 +3,7 @@ use bytecode::Bytecode;
 use function_block::FunctionBlock;
 use env::Environment;
 use types::Type;
-use stack::Stack;
+use stack::{Stack, StackEntry};
 use std::ops::AddAssign;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -45,22 +45,65 @@ pub struct RunResult {
 }
 
 #[derive(Debug, Clone)]
+pub enum Upvalue {
+    Open { index: usize },
+    Closed(Type),
+}
+
+impl Upvalue {
+    pub fn value(&self, context: &Context) -> Type {
+        let stack = &context.stack;
+        match *self {
+            Upvalue::Open { index } => {
+                println!("getting uvpalue from stack: {}", index);
+                println!("{}", stack.repr());
+                println!("{:?}", context.ci().func.upvalues);
+                println!("{:?}", stack.get(index));
+                println!("");
+                // FIXME: check .instack
+                stack.get(index)
+                    .unwrap_or_else(|| Type::Nil)
+            }
+            Upvalue::Closed(ref data) => data.clone()
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct CallInfo {
     pub pc: PC,
     pub func: FunctionBlock,
-    pub upvalues: Vec<Type>,
+    pub upvalues: Vec<Upvalue>,
     pub _subcall_returns: Option<Vec<Type>>,
 }
 
 impl CallInfo {
-    pub fn new(func: FunctionBlock, upvalues: &[Type], stack: &Stack) -> Self {
+    pub fn new(func: FunctionBlock, upvalues: &[Upvalue], stack: &Stack) -> Self {
         let upvalues: Vec<_> = func.upvalues.iter()
             .map(|upvalue| {
                 let nil = Type::Nil;
                 if upvalue.instack {
-                    stack[upvalue.index as usize].as_type().clone()
+                    Upvalue::Open {
+                        index: upvalue.index as usize
+                    }
                 } else {
-                    upvalues.get(upvalue.index as usize).unwrap_or(&nil).clone()
+                    upvalues.get(upvalue.index as usize)
+                        .map(|upvalue| {
+                            match *upvalue {
+                                Upvalue::Open { index } => {
+                                    //stack[index as usize].as_type().clone()
+                                    upvalue.clone()
+                                },
+                                Upvalue::Closed(ref data) => {
+                                    Upvalue::Closed(data.clone())
+                                }
+                            }
+                        })
+                        .unwrap_or_else(|| {
+                            //TODO: modify stack, open upvalue
+                            Upvalue::Closed(nil)
+                        })
+                        .clone()
                 }
             })
             .collect();
@@ -80,7 +123,12 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn new() -> Self { Self::default() }
+    pub fn new(stack: &Stack) -> Self {
+        Context {
+            call_info: vec![],
+            stack: stack.clone(),
+        }
+    }
     
     pub fn ci(&self) -> &CallInfo {
         assert!(!self.call_info.is_empty());
@@ -91,6 +139,20 @@ impl Context {
         assert!(!self.call_info.is_empty());
         let index = self.call_info.len() - 1;
         &mut self.call_info[index]
+    }
+
+    pub fn close_upvalues(&mut self) {
+        let upvals = self.ci().upvalues.iter()
+            .map(|uv| {
+                match *uv {
+                    Upvalue::Open { index } => {
+                        Upvalue::Closed(self.stack[index].as_type())
+                    },
+                    _ => uv.clone()
+                }
+            })
+            .collect::<Vec<_>>();
+        self.ci_mut().upvalues = upvals;
     }
 }
 
@@ -104,10 +166,10 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn new(bytecode: Bytecode, env: Environment) -> Self {
         let env = env.make();
-        let mut _stack = Stack::default();
+        let mut _stack = Stack::new();
         _stack[0] = env.clone().into();
         let entry_frame = CallInfo::new(bytecode.func.clone(), &[], &_stack);
-        let mut context = Context::default();
+        let mut context = Context::new(&_stack);
         context.call_info.push(entry_frame);
         Interpreter {
             context: context,
@@ -148,6 +210,8 @@ impl Interpreter {
         println!(" {:?}", self.pc().current());
         self.step();
         println!("stack: {}", self.context.stack.repr());
+        // println!("upval: {:#?}", self.context.ci().upvalues);
+        // println!("");
     }
 
     pub fn run(&mut self) -> RunResult {
@@ -254,6 +318,23 @@ mod tests {
         let (mut interpreter, rx) = interpreter_from_bytes(include_bytes!("../fixtures/n_queens"));
         interpreter.run_debug();
         assert_eq!(rx.recv().unwrap(), "TODO");
+    }
+
+    #[test]
+    fn fib_recursive() {
+        let (mut interpreter, rx) = interpreter_from_bytes(include_bytes!("../fixtures/fib"));
+        interpreter.run_debug();
+        assert_eq!(rx.recv().unwrap(), "233"); // fib(12)
+        assert_eq!(rx.recv().unwrap(), "377"); // fib(13)
+    }
+
+    #[test]
+    fn test_closure() {
+        let (mut interpreter, rx) = interpreter_from_bytes(include_bytes!("../fixtures/closures"));
+        interpreter.run_debug();
+        assert_eq!(rx.recv().unwrap(), "making add(2)");
+        assert_eq!(rx.recv().unwrap(), "add2(5) =");
+        assert_eq!(rx.recv().unwrap(), "7");
     }
 
     #[test]

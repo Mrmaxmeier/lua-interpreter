@@ -57,7 +57,9 @@ fn main() {
             .arg(file_path)
             .output()
             .unwrap();
-        println!("{:?}", compile_output);
+        if !compile_output.status.success() {
+            println!("{:?}", compile_output);
+        }
         file_path = "/tmp/luac.out";
     }
 

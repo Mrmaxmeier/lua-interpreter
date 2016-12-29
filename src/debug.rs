@@ -1,5 +1,5 @@
 use parser::*;
-use upvalues::Upvalues;
+use upvalues::UpvalueInfos;
 use std::fmt;
 
 
@@ -34,7 +34,7 @@ pub struct DebugData {
 }
 
 impl DebugData {
-    pub fn update_upvalues(&self, upvalues: &mut Upvalues) {
+    pub fn update_upvalues(&self, upvalues: &mut UpvalueInfos) {
         for (ref mut u, s) in upvalues.iter_mut().zip(&self.upvalue_names) {
             u.name = Some(s.clone());
         }

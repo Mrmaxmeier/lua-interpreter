@@ -3,6 +3,7 @@ use std::ops::{Index, IndexMut};
 use std::fmt;
 
 use types::{Type, Representable};
+use interpreter::{CallInfo, Upvalue};
 
 #[derive(Debug, Clone)]
 pub enum StackEntry {
@@ -76,6 +77,15 @@ impl Stack {
             )
             .collect();
         format!("[{}]", elements.join(", "))
+    }
+
+    pub fn get(&self, index: usize) -> Option<Type> {
+        let index = index + self._closure_base_cache;
+        self._stack.get(index)
+            .and_then(|val| match *val {
+                StackEntry::ClosureBarrier => None,
+                StackEntry::Type(ref val) => Some(val.clone())
+            })
     }
 }
 
