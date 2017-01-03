@@ -177,7 +177,7 @@ main <@hello_world.lua> Lua (5, 3)
 [0 locals]
 
 [1 upvalue]
-\t  1\t  Upvalue { name: Some("_ENV"), instack: true, index: 0 }
+\t  1\t  UpvalueInfo { name: Some("_ENV"), instack: true, index: 0 }
 
 "#);
         let result_lines = pprint_result.lines()

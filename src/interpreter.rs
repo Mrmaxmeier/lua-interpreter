@@ -46,12 +46,12 @@ pub struct RunResult {
 
 #[derive(Debug, Clone)]
 pub enum Upvalue {
-    Open { index: usize },
+    Open { index: usize, next: usize }, // next -> Upvalue::Open
     Closed(Type),
 }
 
 impl Upvalue {
-    pub fn value(&self, context: &Context) -> Type {
+    pub fn value(&self, context: &Context) -> &Type {
         let stack = &context.stack;
         match *self {
             Upvalue::Open { index } => {
@@ -64,8 +64,12 @@ impl Upvalue {
                 stack.get(index)
                     .unwrap_or_else(|| Type::Nil)
             }
-            Upvalue::Closed(ref data) => data.clone()
+            Upvalue::Closed(ref data) => data
         }
+    }
+
+    pub fn next(&self, context: &Context) -> &Upvalue {
+        unimplemented!()
     }
 }
 
