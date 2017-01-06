@@ -43,8 +43,9 @@ impl InstructionOps for GetTabUp {
         let value = {
             if let Type::Table(ref upvalue) = context.ci().upvalues[self.upvalue] {
                 let table = upvalue.lock();
-                let nil = Type::Nil;
-                table.get(&key).unwrap_or(&nil).clone()
+                table.get(&key)
+                    .map(|t| t.clone())
+                    .unwrap_or(Type::Nil)
             } else {
                 panic!("GetTabUp upvalue must be of type Type::Table (got {:?})", context.ci().upvalues[self.upvalue])
             }

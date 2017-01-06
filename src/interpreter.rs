@@ -56,11 +56,12 @@ impl CallInfo {
     pub fn new(func: FunctionBlock, upvalues: &[Type], stack: &Stack) -> Self {
         let upvalues: Vec<_> = func.upvalues.iter()
             .map(|upvalue| {
-                let nil = Type::Nil;
                 if upvalue.instack {
                     stack[upvalue.index as usize].as_type().clone()
                 } else {
-                    upvalues.get(upvalue.index as usize).unwrap_or(&nil).clone()
+                    upvalues.get(upvalue.index as usize)
+                        .map(|t| t.clone())
+                        .unwrap_or(Type::Nil)
                 }
             })
             .collect();

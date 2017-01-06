@@ -83,14 +83,32 @@ impl InstructionOps for NewTable {
 
 // SELF,        A B C   R(A+1) := R(B); R(A) := R(B)[RK(C)]             12
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct SelfOp { pub a: Reg, pub b: Reg, pub c: Reg }
+pub struct SelfOp {
+    pub a: Reg,
+    pub table: Reg,
+    pub key: DataSource
+}
 impl LoadInstruction for SelfOp {
     fn load(d: u32) -> Self {
         let (a, b, c) = parse_A_B_C(d);
         SelfOp {
             a: a,
-            b: b,
-            c: c,
+            table: b,
+            key: c.into(),
         }
+    }
+}
+
+impl InstructionOps for SelfOp {
+    fn exec(&self, context: &mut Context) {
+        let instance = context.stack[self.table].clone();
+        context.stack[self.a + 1] = instance.clone();
+        
+        let table = as_type_variant!(instance.as_type(), Type::Table);
+        let mut _guard = table.lock();
+        let func = _guard.get(&self.key.get_from(context))
+            .map(|t| t.clone())
+            .unwrap_or(Type::Nil);
+        context.stack[self.a] = func.into();
     }
 }

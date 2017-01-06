@@ -83,7 +83,7 @@ macro_rules! match_trait_as_impl {
     ( $this:expr, [$( $x:path ),*] => as $cast_to:ty ) => {
         match $this {
             $( &$x(ref v) => v as $cast_to, )*
-            v => panic!("`as {}` not implemented for {:?}", stringify!($cast_to), v) 
+            // v => panic!("`as {}` not implemented for {:?}", stringify!($cast_to), v) 
         }
     };
 }
@@ -101,6 +101,7 @@ impl Instruction {
             Instruction::GETTABLE,
             Instruction::SETTABLE,
             Instruction::NEWTABLE,
+            Instruction::SELF,
             Instruction::ADD,
             Instruction::SUB,
             Instruction::MUL,
