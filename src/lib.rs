@@ -26,3 +26,4 @@ pub mod debug;
 pub mod env;
 
 // TODO: integrate lundump.c/`check_*` methods
+// TODO: .map(|t| t.clone) => .cloned

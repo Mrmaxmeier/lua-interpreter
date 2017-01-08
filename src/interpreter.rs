@@ -3,8 +3,9 @@ use bytecode::Bytecode;
 use function_block::FunctionBlock;
 use env::Environment;
 use types::Type;
-use stack::Stack;
+use stack::{Stack, StackLevel};
 use std::ops::AddAssign;
+use upvalues::{Upvalue, SharedUpvalue};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PC {
@@ -48,40 +49,36 @@ pub struct RunResult {
 pub struct CallInfo {
     pub pc: PC,
     pub func: FunctionBlock,
-    pub upvalues: Vec<Type>,
+    pub upvalues: Vec<SharedUpvalue>,
     pub _subcall_returns: Option<Vec<Type>>,
 }
 
 impl CallInfo {
-    pub fn new(func: FunctionBlock, upvalues: &[Type], stack: &Stack) -> Self {
-        let upvalues: Vec<_> = func.upvalues.iter()
-            .map(|upvalue| {
-                if upvalue.instack {
-                    stack[upvalue.index as usize].as_type().clone()
-                } else {
-                    upvalues.get(upvalue.index as usize)
-                        .map(|t| t.clone())
-                        .unwrap_or(Type::Nil)
-                }
-            })
-            .collect();
+    pub fn new(func: FunctionBlock, upvalues: &[SharedUpvalue]) -> Self {
         CallInfo {
             pc: PC::new(func.instructions.clone()),
-            upvalues: upvalues,
+            upvalues: upvalues.into(),
             func: func,
             _subcall_returns: None
         }
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Context {
     pub call_info: Vec<CallInfo>,
     pub stack: Stack,
+    open_upval: SharedUpvalue
 }
 
 impl Context {
-    pub fn new() -> Self { Self::default() }
+    pub fn new(stack: &Stack) -> Self {
+        Context {
+            call_info: vec![],
+            stack: stack.clone(),
+            open_upval: SharedUpvalue::new(Upvalue::Closed(Type::Nil))
+        }
+    }
     
     pub fn ci(&self) -> &CallInfo {
         assert!(!self.call_info.is_empty());
@@ -92,6 +89,48 @@ impl Context {
         assert!(!self.call_info.is_empty());
         let index = self.call_info.len() - 1;
         &mut self.call_info[index]
+    }
+
+    pub fn close_upvalues(&mut self, upto: StackLevel) {
+        println!("\nclose_upvalues(upto: {:?})", upto);
+        println!("stack: {}", self.stack.repr());
+        while let Some(next) = self.open_upval.next() {
+            println!("self.open_upval: {:#?}", self.open_upval);
+            println!("open_upval.value {:?}", self.open_upval.value(self));
+            match *self.open_upval.lock() {
+                Upvalue::Open { ref position, .. } => {
+                    let _p: usize = (*position).into();
+                    if _p < upto.into() {
+                        println!("reached end of open upvals");
+                        return
+                    }
+                },
+                Upvalue::Closed(_) => { break; }
+            }
+            {
+                let val = self.open_upval.value(self);
+                let mut uv = self.open_upval.lock();
+                *uv = Upvalue::Closed(val);
+            }
+            self.open_upval = next.clone();
+        }
+    }
+
+    pub fn find_upvalue(&mut self, level: StackLevel) -> SharedUpvalue {
+        let mut uv = self.open_upval.clone();
+        while let Some(next) = uv.next() {
+            uv = next;
+            if let Upvalue::Open{ref position, ..} = *uv.lock() {
+                if *position == level {
+                    return uv.clone()
+                }
+            }
+        }
+        self.open_upval = SharedUpvalue::new(Upvalue::Open {
+            position: level,
+            next: self.open_upval.clone()
+        });
+        self.open_upval.clone()
     }
 }
 
@@ -105,10 +144,16 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn new(bytecode: Bytecode, env: Environment) -> Self {
         let env = env.make();
-        let mut _stack = Stack::default();
+        let mut _stack = Stack::new();
         _stack[0] = env.clone().into();
-        let entry_frame = CallInfo::new(bytecode.func.clone(), &[], &_stack);
-        let mut context = Context::default();
+        let mut context = Context::new(&_stack);
+
+        let env_upval = Upvalue::Closed(env.clone());
+        context.open_upval = SharedUpvalue::new(env_upval);
+        let entry_frame = CallInfo::new(bytecode.func.clone(), &[
+            context.open_upval.clone()
+        ]);
+
         context.call_info.push(entry_frame);
         Interpreter {
             context: context,
@@ -149,6 +194,8 @@ impl Interpreter {
         println!(" {:?}", self.pc().current());
         self.step();
         println!("stack: {}", self.context.stack.repr());
+        // println!("upval: {:#?}", self.context.ci().upvalues);
+        // println!("");
     }
 
     pub fn run(&mut self) -> RunResult {
@@ -255,6 +302,23 @@ mod tests {
         let (mut interpreter, rx) = interpreter_from_bytes(include_bytes!("../fixtures/n_queens"));
         interpreter.run_debug();
         assert_eq!(rx.recv().unwrap(), "TODO");
+    }
+
+    #[test]
+    fn fib_recursive() {
+        let (mut interpreter, rx) = interpreter_from_bytes(include_bytes!("../fixtures/fib"));
+        interpreter.run_debug();
+        assert_eq!(rx.recv().unwrap(), "233"); // fib(12)
+        assert_eq!(rx.recv().unwrap(), "377"); // fib(13)
+    }
+
+    #[test]
+    fn test_closure() {
+        let (mut interpreter, rx) = interpreter_from_bytes(include_bytes!("../fixtures/closures"));
+        interpreter.run_debug();
+        assert_eq!(rx.recv().unwrap(), "making add(2)");
+        assert_eq!(rx.recv().unwrap(), "add2(5) = ");
+        assert_eq!(rx.recv().unwrap(), "7");
     }
 
     #[test]

@@ -6,6 +6,8 @@ use parking_lot::Mutex;
 use stack::StackEntry;
 use types::{Type, Representable};
 use function_block::FunctionBlock;
+use interpreter::Context;
+use upvalues::SharedUpvalue;
 
 pub type NativeFunction = Box<Fn(&mut FunctionInterface)>;
 
@@ -42,13 +44,23 @@ pub struct LuaFunction {
     // extra: usize,
     // number_results: usize,
     // callstatus: u8,
+    pub upvalues: Vec<SharedUpvalue>,
     pub proto: FunctionBlock,
 }
 
 impl LuaFunction {
-    pub fn new(proto: FunctionBlock) -> Self {
+    pub fn new(context: &mut Context, proto: FunctionBlock) -> Self {
+        let upvals = proto.upvalues.iter().map(|uv| {
+            if uv.instack { // upValue refers to local variable
+                let level = context.stack.get_level(uv.index as usize);
+                context.find_upvalue(level)
+            } else { // get upValue from enclosing function
+                context.ci().upvalues[uv.index as usize].clone()
+            }
+        }).collect();
         LuaFunction {
-            proto: proto
+            proto: proto,
+            upvalues: upvals
         }
     }
 }
@@ -97,7 +109,7 @@ impl Hash for Function {
 impl fmt::Debug for Function {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Function::Lua(ref lua_func) => write!(f, "{:?}", lua_func),
+            Function::Lua(_) => write!(f, "Function::Lua(...)"),
             Function::Native(_) => write!(f, "Function::Native(...)"),
         }
     }

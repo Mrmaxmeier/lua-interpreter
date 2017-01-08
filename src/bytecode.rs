@@ -34,7 +34,7 @@ impl Parsable for Bytecode {
 mod tests {
     use super::*;
     use test::Bencher;
-    use upvalues::Upvalue;
+    use upvalues::UpvalueInfo;
     use std::io::Cursor;
     use parser::Parsable;
     use types::{Type, Number};
@@ -110,7 +110,7 @@ mod tests {
         assert_eq!(result.constants, vec![]);
         assert_eq!(result.protos, vec![]);
         assert_eq!(result.upvalues, vec![
-            Upvalue {
+            UpvalueInfo {
                 name: Some("_ENV".to_owned()),
                 instack: true,
                 index: 0
@@ -135,7 +135,7 @@ mod tests {
         s.lines()
             .skip(1)
             .take(lines - 2)
-            .map(|s| re.replace_all(s, "\t"))
+            .map(|s| re.replace_all(s, "\t").into_owned())
             .collect()
     }
 
@@ -177,7 +177,7 @@ main <@hello_world.lua> Lua (5, 3)
 [0 locals]
 
 [1 upvalue]
-\t  1\t  Upvalue { name: Some("_ENV"), instack: true, index: 0 }
+\t  1\t  UpvalueInfo { name: Some("_ENV"), instack: true, index: 0 }
 
 "#);
         let result_lines = pprint_result.lines()

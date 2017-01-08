@@ -81,8 +81,8 @@ pub enum Instruction {
 
 macro_rules! match_trait_as_impl {
     ( $this:expr, [$( $x:path ),*] => as $cast_to:ty ) => {
-        match $this {
-            $( &$x(ref v) => v as $cast_to, )*
+        match *$this {
+            $( $x(ref v) => v as $cast_to, )*
             // v => panic!("`as {}` not implemented for {:?}", stringify!($cast_to), v) 
         }
     };

@@ -1,7 +1,7 @@
 use parser::*;
 use code::Code;
 use constants::Constants;
-use upvalues::Upvalues;
+use upvalues::UpvalueInfos;
 use debug::Debug;
 use instruction::InstructionContext;
 use types::Representable;
@@ -15,7 +15,7 @@ pub struct FunctionBlock {
     pub instructions: Code,
     pub constants: Constants,
     pub protos: Vec<FunctionBlock>,
-    pub upvalues: Upvalues,
+    pub upvalues: UpvalueInfos,
     pub debug: Debug
 }
 
@@ -104,7 +104,7 @@ impl Parsable for FunctionBlock {
         // println!("code {:#?}", code);
         let constants = Constants::parse(r);
         // println!("constants {:#?}", constants);
-        let mut upvalues = Upvalues::parse(r);
+        let mut upvalues = UpvalueInfos::parse(r);
         // println!("upvalues {:#?}", upvalues);
         let len_protos = u32::parse(r);
         // println!("parsing {} protos (subblocks)", len_protos);
@@ -140,7 +140,7 @@ mod tests {
     use std::io::Cursor;
     use types::Type;
     use header::Header;
-    use upvalues::Upvalue;
+    use upvalues::UpvalueInfo;
     use parser::{Parsable, ReadExt};
 
     #[test]
@@ -161,7 +161,7 @@ mod tests {
             Type::String("zweiundvierzig".into())
         ]);
         assert_eq!(result.upvalues, vec![
-            Upvalue {
+            UpvalueInfo {
                 name: Some("_ENV".into()),
                 instack: true,
                 index: 0

@@ -18,7 +18,8 @@ impl LoadInstruction for GetUpval {
 impl InstructionOps for GetUpval {
     fn exec(&self, context: &mut Context) {
         let upval = context.ci().upvalues[self.upvalue].clone();
-        context.stack[self.reg] = upval.into();
+        println!("GetUpval {:?} => {:?}", upval, upval.value(context));
+        context.stack[self.reg] = upval.value(context).into();
     }
 }
 
@@ -41,13 +42,14 @@ impl InstructionOps for GetTabUp {
     fn exec(&self, context: &mut Context) {
         let key = self.constant.get_from(context);
         let value = {
-            if let Type::Table(ref upvalue) = context.ci().upvalues[self.upvalue] {
+            let table = context.ci().upvalues[self.upvalue].value(context);
+            if let Type::Table(ref upvalue) = table {
                 let table = upvalue.lock();
                 table.get(&key)
                     .map(|t| t.clone())
                     .unwrap_or(Type::Nil)
             } else {
-                panic!("GetTabUp upvalue must be of type Type::Table (got {:?})", context.ci().upvalues[self.upvalue])
+                panic!("GetTabUp upvalue must be of type Type::Table (got {:?})", table)
             }
         };
         context.stack[self.reg] = value.into();
@@ -86,7 +88,7 @@ impl InstructionOps for SetTabUp {
         let upval = context.ci().upvalues[self.upval].clone();
         let key = self.key.get_from(context);
         let value = self.value.get_from(context);
-        let table = as_type_variant!(upval, Type::Table);
+        let table = as_type_variant!(upval.value(&context), Type::Table);
         table.lock().insert(key, value);
     }
 }
