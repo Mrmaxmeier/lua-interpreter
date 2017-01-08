@@ -4,7 +4,7 @@ name = "lua-interpreter"
 version = "0.1.0"
 
 [dependencies]
-byteorder = "^0.5"
+byteorder = "1.0.0"
 parking_lot = {version = "0.3", features = ["nightly"]}
-regex = "^0.1"
+regex = "^0.2"
 clap = "^2.13"
