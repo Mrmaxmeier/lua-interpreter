@@ -92,16 +92,16 @@ impl Context {
     }
 
     pub fn close_upvalues(&mut self, upto: StackLevel) {
-        println!("\nclose_upvalues(upto: {:?})", upto);
-        println!("stack: {}", self.stack.repr());
+        // println!("\nclose_upvalues(upto: {:?})", upto);
+        // println!("stack: {}", self.stack.repr());
         while let Some(next) = self.open_upval.next() {
-            println!("self.open_upval: {:#?}", self.open_upval);
-            println!("open_upval.value {:?}", self.open_upval.value(self));
+            // println!("self.open_upval: {:#?}", self.open_upval);
+            // println!("open_upval.value {:?}", self.open_upval.value(self));
             match *self.open_upval.lock() {
                 Upvalue::Open { ref position, .. } => {
                     let _p: usize = (*position).into();
                     if _p < upto.into() {
-                        println!("reached end of open upvals");
+                        // println!("reached end of open upvals");
                         return
                     }
                 },
@@ -308,8 +308,10 @@ mod tests {
     fn fib_recursive() {
         let (mut interpreter, rx) = interpreter_from_bytes(include_bytes!("../fixtures/fib"));
         interpreter.run_debug();
-        assert_eq!(rx.recv().unwrap(), "233"); // fib(12)
-        assert_eq!(rx.recv().unwrap(), "377"); // fib(13)
+        let values = vec![1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987];
+        for val in &values {
+            assert_eq!(rx.recv().unwrap(), format!("{}", val));
+        }
     }
 
     #[test]
