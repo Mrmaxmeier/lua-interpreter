@@ -134,7 +134,8 @@ impl Call {
 
     fn call_lua(&self, context: &mut Context, lua: function::LuaFunction) {
         context.ci_mut().pc += -1isize; // re-run this instruction once call has finished
-        let call_info = CallInfo::new(context, lua.proto.clone());
+        let encup = context.ci().upvalues.clone();
+        let call_info = CallInfo::new(context, lua.proto.clone(), &encup);
         context.call_info.push(call_info);
         let param_start = self.function + 1;
         let param_range = match self.params {

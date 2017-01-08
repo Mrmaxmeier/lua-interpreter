@@ -53,6 +53,7 @@ pub enum Upvalue {
 
 impl Upvalue {
     pub fn value(&self, context: &Context) -> Type {
+        // println!("value({:?})", self);
         let stack = &context.stack;
         match *self {
             Upvalue::Open { ref position, .. } => {
@@ -82,12 +83,7 @@ pub struct CallInfo {
 }
 
 impl CallInfo {
-    pub fn new(context: &mut Context, func: FunctionBlock) -> Self {
-        let ctx_upvalues = if context.call_info.is_empty() {
-            vec![]
-        } else {
-            context.ci().upvalues.clone()
-        };
+    pub fn new(context: &mut Context, func: FunctionBlock, ctx_upvals: &[Upvalue]) -> Self {
         let upvalues: Vec<_> = func.upvalues.iter()
             .map(|upvalue| {
                 // XXX: use upvals from OP_CLOSURE
@@ -96,7 +92,7 @@ impl CallInfo {
                     let level = context.stack.get_level(upvalue.index as usize);
                     context.find_upvalue(level)
                 } else {
-                    ctx_upvalues.get(upvalue.index as usize)
+                    ctx_upvals.get(upvalue.index as usize)
                         .cloned()
                         .unwrap_or_else(|| {
                             //TODO: modify stack, open upvalue
@@ -203,8 +199,11 @@ impl Interpreter {
         let env = env.make();
         let mut _stack = Stack::new();
         _stack[0] = env.clone().into();
+        let env_upval = Upvalue::Closed(env.clone());
         let mut context = Context::new(&_stack);
-        let entry_frame = CallInfo::new(&mut context, bytecode.func.clone());
+        context.open_upval = Arc::new(env_upval.clone());
+        let mut entry_frame = CallInfo::new(&mut context, bytecode.func.clone(), &[]);
+        entry_frame.upvalues[0] = env_upval.clone(); // TODO: handle this in CallInfo::new
         context.call_info.push(entry_frame);
         Interpreter {
             context: context,
