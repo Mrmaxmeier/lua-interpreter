@@ -63,16 +63,15 @@ impl PartialOrd for Number {
 
 impl Hash for Number {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        // TODO: use f64 hash func
         let val: f64 = match *self {
             Number::Integer(i) => (i as f64),
             Number::Float(f) => f,
         };
-        format!("{}", val).hash(state); // FIXME
+        format!("{}", val).hash(state);
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)] // TODO: lua-sensitive code should'nt use the derived PartialEq
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Type {
     Nil,
     Boolean(bool),

@@ -18,7 +18,6 @@ impl LoadInstruction for GetUpval {
 impl InstructionOps for GetUpval {
     fn exec(&self, context: &mut Context) {
         let upval = context.ci().upvalues[self.upvalue].clone();
-        println!("GetUpval {:?} => {:?}", upval, upval.value(context));
         context.stack[self.reg] = upval.value(context).into();
     }
 }

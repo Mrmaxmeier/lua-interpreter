@@ -27,10 +27,7 @@ pub trait LoadInstruction: Sized {
 }
 
 pub trait InstructionOps: fmt::Debug {
-    fn exec(&self, _: &mut Context) {
-        println!("exec not yet implemented for {:?}!", self);
-        unimplemented!()
-    } // TODO: remove impl
+    fn exec(&self, _: &mut Context);
     fn debug_info(&self, InstructionContext) -> Vec<String> { vec![] }
 }
 
@@ -235,7 +232,6 @@ pub fn parse_A_B_C(d: u32) -> (Reg, Reg, Reg) {
     (a as Reg, b as Reg, c as Reg)
 }
 
-// TODO: rename DataSource
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum DataSource {
     Register(usize),
