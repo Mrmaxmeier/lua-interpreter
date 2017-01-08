@@ -83,25 +83,29 @@ pub struct CallInfo {
 }
 
 impl CallInfo {
-    pub fn new(context: &mut Context, func: FunctionBlock, ctx_upvals: &[Upvalue]) -> Self {
-        let upvalues: Vec<_> = func.upvalues.iter()
-            .map(|upvalue| {
-                // XXX: use upvals from OP_CLOSURE
-                let nil = Type::Nil;
-                if upvalue.instack {
-                    let level = context.stack.get_level(upvalue.index as usize);
-                    context.find_upvalue(level)
-                } else {
-                    ctx_upvals.get(upvalue.index as usize)
-                        .cloned()
-                        .unwrap_or_else(|| {
-                            //TODO: modify stack, open upvalue
-                            Upvalue::Closed(nil)
-                        })
-                        .clone()
-                }
-            })
-            .collect();
+    pub fn new(context: &mut Context, func: FunctionBlock, ctx_upvals: &[Upvalue], closure_upvals: Option<&[Upvalue]>) -> Self {
+        let upvalues: Vec<_> = match closure_upvals {
+            Some(closure_upvals) => closure_upvals.into(),
+            None => {
+                func.upvalues.iter()
+                    .map(|upvalue| {
+                        let nil = Type::Nil;
+                        if upvalue.instack {
+                            let level = context.stack.get_level(upvalue.index as usize);
+                            context.find_upvalue(level)
+                        } else {
+                            ctx_upvals.get(upvalue.index as usize)
+                                .cloned()
+                                .unwrap_or_else(|| {
+                                    //TODO: modify stack, open upvalue
+                                    Upvalue::Closed(nil)
+                                })
+                                .clone()
+                        }
+                    })
+                    .collect()
+            }
+        };
         CallInfo {
             pc: PC::new(func.instructions.clone()),
             upvalues: upvalues,
@@ -161,7 +165,10 @@ impl Context {
                         return
                     }
                 },
-                Upvalue::Closed(_) => panic!("attempted to close closed upval")
+                Upvalue::Closed(_) => {
+                    // panic!("attempted to close closed upval")
+                    return;
+                }
             } 
             self.open_upval = Arc::new(next);
             // XXX move upvalue to upvalue slot
@@ -202,8 +209,9 @@ impl Interpreter {
         let env_upval = Upvalue::Closed(env.clone());
         let mut context = Context::new(&_stack);
         context.open_upval = Arc::new(env_upval.clone());
-        let mut entry_frame = CallInfo::new(&mut context, bytecode.func.clone(), &[]);
-        entry_frame.upvalues[0] = env_upval.clone(); // TODO: handle this in CallInfo::new
+        let entry_frame = CallInfo::new(&mut context, bytecode.func.clone(), &[], Some(&[
+            env_upval.clone()
+        ]));
         context.call_info.push(entry_frame);
         Interpreter {
             context: context,
