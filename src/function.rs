@@ -6,7 +6,8 @@ use parking_lot::Mutex;
 use stack::StackEntry;
 use types::{Type, Representable};
 use function_block::FunctionBlock;
-use interpreter::{Upvalue, Context};
+use interpreter::Context;
+use upvalues::SharedUpvalue;
 
 pub type NativeFunction = Box<Fn(&mut FunctionInterface)>;
 
@@ -43,7 +44,7 @@ pub struct LuaFunction {
     // extra: usize,
     // number_results: usize,
     // callstatus: u8,
-    pub upvalues: Vec<Upvalue>,
+    pub upvalues: Vec<SharedUpvalue>,
     pub proto: FunctionBlock,
 }
 

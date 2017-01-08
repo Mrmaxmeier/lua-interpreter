@@ -5,7 +5,7 @@ use env::Environment;
 use types::Type;
 use stack::{Stack, StackLevel};
 use std::ops::AddAssign;
-use std::sync::Arc;
+use upvalues::{Upvalue, SharedUpvalue};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PC {
@@ -45,70 +45,19 @@ pub struct RunResult {
     instruction_count: usize
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum Upvalue {
-    Open { position: StackLevel, next: Arc<Upvalue> },
-    Closed(Type),
-}
-
-impl Upvalue {
-    pub fn value(&self, context: &Context) -> Type {
-        // println!("value({:?})", self);
-        let stack = &context.stack;
-        match *self {
-            Upvalue::Open { ref position, .. } => {
-                stack.get(*position)
-                    .unwrap_or(Type::Nil)
-            }
-            Upvalue::Closed(ref data) => data.clone()
-        }
-    }
-
-    pub fn next(&self) -> Option<Upvalue> {
-        match *self {
-            Upvalue::Open { ref next, .. } => {
-                Some((**next).clone())
-            },
-            Upvalue::Closed(_) => None
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct CallInfo {
     pub pc: PC,
     pub func: FunctionBlock,
-    pub upvalues: Vec<Upvalue>,
+    pub upvalues: Vec<SharedUpvalue>,
     pub _subcall_returns: Option<Vec<Type>>,
 }
 
 impl CallInfo {
-    pub fn new(context: &mut Context, func: FunctionBlock, ctx_upvals: &[Upvalue], closure_upvals: Option<&[Upvalue]>) -> Self {
-        let upvalues: Vec<_> = match closure_upvals {
-            Some(closure_upvals) => closure_upvals.into(),
-            None => {
-                func.upvalues.iter()
-                    .map(|upvalue| {
-                        let nil = Type::Nil;
-                        if upvalue.instack {
-                            let level = context.stack.get_level(upvalue.index as usize);
-                            context.find_upvalue(level)
-                        } else {
-                            ctx_upvals.get(upvalue.index as usize)
-                                .cloned()
-                                .unwrap_or_else(|| {
-                                    //TODO: modify stack, open upvalue
-                                    Upvalue::Closed(nil)
-                                })
-                                .clone()
-                        }
-                    })
-                    .collect()
-            }
-        };
+    pub fn new(func: FunctionBlock, upvalues: &[SharedUpvalue]) -> Self {
         CallInfo {
             pc: PC::new(func.instructions.clone()),
-            upvalues: upvalues,
+            upvalues: upvalues.into(),
             func: func,
             _subcall_returns: None
         }
@@ -119,7 +68,7 @@ impl CallInfo {
 pub struct Context {
     pub call_info: Vec<CallInfo>,
     pub stack: Stack,
-    open_upval: Arc<Upvalue>
+    open_upval: SharedUpvalue
 }
 
 impl Context {
@@ -127,7 +76,7 @@ impl Context {
         Context {
             call_info: vec![],
             stack: stack.clone(),
-            open_upval: Arc::new(Upvalue::Closed(Type::Nil))
+            open_upval: SharedUpvalue::new(Upvalue::Closed(Type::Nil))
         }
     }
     
@@ -143,54 +92,45 @@ impl Context {
     }
 
     pub fn close_upvalues(&mut self, upto: StackLevel) {
-        /*
-        let upvals = self.ci().upvalues.iter()
-            .map(|uv| {
-                match *uv {
-                    Upvalue::Open { index, parent } => {
-                        Upvalue::Closed(self.stack[index].as_type())
-                    },
-                    _ => uv.clone()
-                }
-            })
-            .collect::<Vec<_>>();
-        self.ci_mut().upvalues = upvals;
-        XXX remove
-        */
+        println!("\nclose_upvalues(upto: {:?})", upto);
+        println!("stack: {}", self.stack.repr());
         while let Some(next) = self.open_upval.next() {
-            match next {
+            println!("self.open_upval: {:#?}", self.open_upval);
+            println!("open_upval.value {:?}", self.open_upval.value(self));
+            match *self.open_upval.lock() {
                 Upvalue::Open { ref position, .. } => {
                     let _p: usize = (*position).into();
                     if _p < upto.into() {
+                        println!("reached end of open upvals");
                         return
                     }
                 },
-                Upvalue::Closed(_) => {
-                    // panic!("attempted to close closed upval")
-                    return;
-                }
-            } 
-            self.open_upval = Arc::new(next);
-            // XXX move upvalue to upvalue slot
+                Upvalue::Closed(_) => { break; }
+            }
+            {
+                let val = self.open_upval.value(self);
+                let mut uv = self.open_upval.lock();
+                *uv = Upvalue::Closed(val);
+            }
+            self.open_upval = next.clone();
         }
     }
 
-    pub fn find_upvalue(&mut self, level: StackLevel) -> Upvalue {
-        let mut uv = (*self.open_upval).clone();
+    pub fn find_upvalue(&mut self, level: StackLevel) -> SharedUpvalue {
+        let mut uv = self.open_upval.clone();
         while let Some(next) = uv.next() {
             uv = next;
-            if let Upvalue::Open{ref position, ..} = uv {
+            if let Upvalue::Open{ref position, ..} = *uv.lock() {
                 if *position == level {
                     return uv.clone()
                 }
             }
         }
-        let new = Upvalue::Open {
+        self.open_upval = SharedUpvalue::new(Upvalue::Open {
             position: level,
             next: self.open_upval.clone()
-        };
-        self.open_upval = Arc::new(new.clone());
-        new
+        });
+        self.open_upval.clone()
     }
 }
 
@@ -206,12 +146,14 @@ impl Interpreter {
         let env = env.make();
         let mut _stack = Stack::new();
         _stack[0] = env.clone().into();
-        let env_upval = Upvalue::Closed(env.clone());
         let mut context = Context::new(&_stack);
-        context.open_upval = Arc::new(env_upval.clone());
-        let entry_frame = CallInfo::new(&mut context, bytecode.func.clone(), &[], Some(&[
-            env_upval.clone()
-        ]));
+
+        let env_upval = Upvalue::Closed(env.clone());
+        context.open_upval = SharedUpvalue::new(env_upval);
+        let entry_frame = CallInfo::new(bytecode.func.clone(), &[
+            context.open_upval.clone()
+        ]);
+
         context.call_info.push(entry_frame);
         Interpreter {
             context: context,

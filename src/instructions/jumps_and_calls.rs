@@ -22,6 +22,10 @@ impl LoadInstruction for Jmp {
 
 impl InstructionOps for Jmp {
     fn exec(&self, context: &mut Context) {
+        if self.a != 0 {
+            let upto = context.stack.get_level(self.a - 1);
+            context.close_upvalues(upto);
+        }
         context.ci_mut().pc += self.jump;
     }
 
@@ -134,8 +138,7 @@ impl Call {
 
     fn call_lua(&self, context: &mut Context, lua: function::LuaFunction) {
         context.ci_mut().pc += -1isize; // re-run this instruction once call has finished
-        let encup = context.ci().upvalues.clone();
-        let call_info = CallInfo::new(context, lua.proto.clone(), &encup, Some(lua.upvalues.as_slice()));
+        let call_info = CallInfo::new(lua.proto.clone(), lua.upvalues.as_slice());
         context.call_info.push(call_info);
         let param_start = self.function + 1;
         let param_range = match self.params {
