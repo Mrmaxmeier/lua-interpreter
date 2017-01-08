@@ -24,11 +24,12 @@ end
  
 if can_find_solution() then
   for y = 1, N do
+    local line = ""
     for x = 1, N do
       -- Print "|Q" if grid[x][y] is true; "|_" otherwise.
-      io.write(grid[x][y] and "|Q" or "|_")
+      line = line .. (grid[x][y] and "|Q" or "|_")
     end
-    print("|")
+    print(line .. "|")
   end
 else
   print(string.format("No solution for %d queens.\n", N))
