@@ -3,7 +3,34 @@ use std::ops::{Index, IndexMut};
 use std::fmt;
 
 use types::{Type, Representable};
-use interpreter::{CallInfo, Upvalue};
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub struct StackLevel {
+    base: usize,
+    index: usize
+}
+
+impl Into<usize> for StackLevel {
+    fn into(self) -> usize {
+        self.base + self.index
+    }
+}
+
+pub trait StackIndex {
+    fn idx(&self, base: usize) -> usize;
+}
+
+impl StackIndex for StackLevel {
+    fn idx(&self, _: usize) -> usize {
+        (*self).into()
+    }
+}
+
+impl StackIndex for usize {
+    fn idx(&self, base: usize) -> usize {
+        base + self
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum StackEntry {
@@ -79,13 +106,20 @@ impl Stack {
         format!("[{}]", elements.join(", "))
     }
 
-    pub fn get(&self, index: usize) -> Option<Type> {
-        let index = index + self._closure_base_cache;
+    pub fn get<T: StackIndex>(&self, index: T) -> Option<Type> {
+        let index = index.idx(self._closure_base_cache);
         self._stack.get(index)
             .and_then(|val| match *val {
                 StackEntry::ClosureBarrier => None,
                 StackEntry::Type(ref val) => Some(val.clone())
             })
+    }
+
+    pub fn get_level(&self, index: usize) -> StackLevel {
+        StackLevel {
+            base: self._closure_base_cache,
+            index: index
+        }
     }
 }
 

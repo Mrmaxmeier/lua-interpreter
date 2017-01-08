@@ -134,7 +134,7 @@ impl Call {
 
     fn call_lua(&self, context: &mut Context, lua: function::LuaFunction) {
         context.ci_mut().pc += -1isize; // re-run this instruction once call has finished
-        let call_info = CallInfo::new(lua.proto.clone(), &context.ci().upvalues, &context.stack);
+        let call_info = CallInfo::new(context, lua.proto.clone());
         context.call_info.push(call_info);
         let param_start = self.function + 1;
         let param_range = match self.params {
@@ -219,7 +219,8 @@ impl InstructionOps for Tailcall {
         } else {
             panic!("Tailcall function must be of type Function::Lua (got {:?})", context.stack[self.function])
         }
-        context.close_upvalues();
+        let call_base = context.stack.get_level(0);
+        context.close_upvalues(call_base);
         context.stack.pop_barrier();
         context.stack.insert_barrier();
         for (i, param) in params.iter().enumerate() {
@@ -262,8 +263,9 @@ impl InstructionOps for Return {
                 }
             };
             let returns: Vec<_> = return_range.map(|index| context.stack[index].as_type()).collect();
-            if !context.call_info.is_empty() {            
-                context.close_upvalues();
+            if !context.call_info.is_empty() {
+                let call_base = context.stack.get_level(0);
+                context.close_upvalues(call_base);
             }
             context.stack.pop_barrier();
             if !context.call_info.is_empty() {

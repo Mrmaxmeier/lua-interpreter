@@ -19,7 +19,7 @@ impl LoadInstruction for Closure {
 impl InstructionOps for Closure {
     fn exec(&self, context: &mut Context) {
         let proto = context.ci().func.protos[self.b].clone();
-        let func = LuaFunction::new(proto);
+        let func = LuaFunction::new(context, proto);
         context.stack[self.a] = Type::Function(Function::Lua(func)).into();
     }
 }

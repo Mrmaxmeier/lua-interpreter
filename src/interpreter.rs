@@ -3,8 +3,9 @@ use bytecode::Bytecode;
 use function_block::FunctionBlock;
 use env::Environment;
 use types::Type;
-use stack::{Stack, StackEntry};
+use stack::{Stack, StackLevel};
 use std::ops::AddAssign;
+use std::sync::Arc;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PC {
@@ -44,32 +45,31 @@ pub struct RunResult {
     instruction_count: usize
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Upvalue {
-    Open { index: usize, next: usize }, // next -> Upvalue::Open
+    Open { position: StackLevel, next: Arc<Upvalue> },
     Closed(Type),
 }
 
 impl Upvalue {
-    pub fn value(&self, context: &Context) -> &Type {
+    pub fn value(&self, context: &Context) -> Type {
         let stack = &context.stack;
         match *self {
-            Upvalue::Open { index } => {
-                println!("getting uvpalue from stack: {}", index);
-                println!("{}", stack.repr());
-                println!("{:?}", context.ci().func.upvalues);
-                println!("{:?}", stack.get(index));
-                println!("");
-                // FIXME: check .instack
-                stack.get(index)
-                    .unwrap_or_else(|| Type::Nil)
+            Upvalue::Open { ref position, .. } => {
+                stack.get(*position)
+                    .unwrap_or(Type::Nil)
             }
-            Upvalue::Closed(ref data) => data
+            Upvalue::Closed(ref data) => data.clone()
         }
     }
 
-    pub fn next(&self, context: &Context) -> &Upvalue {
-        unimplemented!()
+    pub fn next(&self) -> Option<Upvalue> {
+        match *self {
+            Upvalue::Open { ref next, .. } => {
+                Some((**next).clone())
+            },
+            Upvalue::Closed(_) => None
+        }
     }
 }
 
@@ -82,27 +82,22 @@ pub struct CallInfo {
 }
 
 impl CallInfo {
-    pub fn new(func: FunctionBlock, upvalues: &[Upvalue], stack: &Stack) -> Self {
+    pub fn new(context: &mut Context, func: FunctionBlock) -> Self {
+        let ctx_upvalues = if context.call_info.is_empty() {
+            vec![]
+        } else {
+            context.ci().upvalues.clone()
+        };
         let upvalues: Vec<_> = func.upvalues.iter()
             .map(|upvalue| {
+                // XXX: use upvals from OP_CLOSURE
                 let nil = Type::Nil;
                 if upvalue.instack {
-                    Upvalue::Open {
-                        index: upvalue.index as usize
-                    }
+                    let level = context.stack.get_level(upvalue.index as usize);
+                    context.find_upvalue(level)
                 } else {
-                    upvalues.get(upvalue.index as usize)
-                        .map(|upvalue| {
-                            match *upvalue {
-                                Upvalue::Open { index } => {
-                                    //stack[index as usize].as_type().clone()
-                                    upvalue.clone()
-                                },
-                                Upvalue::Closed(ref data) => {
-                                    Upvalue::Closed(data.clone())
-                                }
-                            }
-                        })
+                    ctx_upvalues.get(upvalue.index as usize)
+                        .cloned()
                         .unwrap_or_else(|| {
                             //TODO: modify stack, open upvalue
                             Upvalue::Closed(nil)
@@ -120,10 +115,11 @@ impl CallInfo {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Context {
     pub call_info: Vec<CallInfo>,
     pub stack: Stack,
+    open_upval: Arc<Upvalue>
 }
 
 impl Context {
@@ -131,6 +127,7 @@ impl Context {
         Context {
             call_info: vec![],
             stack: stack.clone(),
+            open_upval: Arc::new(Upvalue::Closed(Type::Nil))
         }
     }
     
@@ -145,11 +142,12 @@ impl Context {
         &mut self.call_info[index]
     }
 
-    pub fn close_upvalues(&mut self) {
+    pub fn close_upvalues(&mut self, upto: StackLevel) {
+        /*
         let upvals = self.ci().upvalues.iter()
             .map(|uv| {
                 match *uv {
-                    Upvalue::Open { index } => {
+                    Upvalue::Open { index, parent } => {
                         Upvalue::Closed(self.stack[index].as_type())
                     },
                     _ => uv.clone()
@@ -157,6 +155,39 @@ impl Context {
             })
             .collect::<Vec<_>>();
         self.ci_mut().upvalues = upvals;
+        XXX remove
+        */
+        while let Some(next) = self.open_upval.next() {
+            match next {
+                Upvalue::Open { ref position, .. } => {
+                    let _p: usize = (*position).into();
+                    if _p < upto.into() {
+                        return
+                    }
+                },
+                Upvalue::Closed(_) => panic!("attempted to close closed upval")
+            } 
+            self.open_upval = Arc::new(next);
+            // XXX move upvalue to upvalue slot
+        }
+    }
+
+    pub fn find_upvalue(&mut self, level: StackLevel) -> Upvalue {
+        let mut uv = (*self.open_upval).clone();
+        while let Some(next) = uv.next() {
+            uv = next;
+            if let Upvalue::Open{ref position, ..} = uv {
+                if *position == level {
+                    return uv.clone()
+                }
+            }
+        }
+        let new = Upvalue::Open {
+            position: level,
+            next: self.open_upval.clone()
+        };
+        self.open_upval = Arc::new(new.clone());
+        new
     }
 }
 
@@ -172,8 +203,8 @@ impl Interpreter {
         let env = env.make();
         let mut _stack = Stack::new();
         _stack[0] = env.clone().into();
-        let entry_frame = CallInfo::new(bytecode.func.clone(), &[], &_stack);
         let mut context = Context::new(&_stack);
+        let entry_frame = CallInfo::new(&mut context, bytecode.func.clone());
         context.call_info.push(entry_frame);
         Interpreter {
             context: context,
