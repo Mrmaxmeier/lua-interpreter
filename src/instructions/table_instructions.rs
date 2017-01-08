@@ -107,7 +107,7 @@ impl InstructionOps for SelfOp {
         let table = as_type_variant!(instance.as_type(), Type::Table);
         let mut _guard = table.lock();
         let func = _guard.get(&self.key.get_from(context))
-            .map(|t| t.clone())
+            .cloned()
             .unwrap_or(Type::Nil);
         context.stack[self.a] = func.into();
     }

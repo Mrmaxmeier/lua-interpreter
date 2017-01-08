@@ -46,7 +46,7 @@ impl InstructionOps for GetTabUp {
             if let Type::Table(ref upvalue) = table {
                 let table = upvalue.lock();
                 table.get(&key)
-                    .map(|t| t.clone())
+                    .cloned()
                     .unwrap_or(Type::Nil)
             } else {
                 panic!("GetTabUp upvalue must be of type Type::Table (got {:?})", table)
