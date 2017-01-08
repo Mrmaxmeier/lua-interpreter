@@ -115,6 +115,9 @@ impl InstructionOps for LoadNil {
     fn debug_info(&self, c: InstructionContext) -> Vec<String> {
         let start = self.start as usize;
         let end = start + self.range + 1;
+        if c.debug.locals.len() <= end {
+            return vec![];
+        }
         (start..end).map(|i| format!("{} = {}", i, c.debug.locals[i])).collect()
     }
 }

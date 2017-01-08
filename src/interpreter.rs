@@ -301,7 +301,19 @@ mod tests {
     fn calculates_n_queens_solution() {
         let (mut interpreter, rx) = interpreter_from_bytes(include_bytes!("../fixtures/n_queens"));
         interpreter.run_debug();
-        assert_eq!(rx.recv().unwrap(), "TODO");
+        let result = vec![
+            "|Q|_|_|_|_|_|_|_|",
+            "|_|_|_|_|_|_|Q|_|",
+            "|_|_|_|_|Q|_|_|_|",
+            "|_|_|_|_|_|_|_|Q|",
+            "|_|Q|_|_|_|_|_|_|",
+            "|_|_|_|Q|_|_|_|_|",
+            "|_|_|_|_|_|Q|_|_|",
+            "|_|_|Q|_|_|_|_|_|"
+        ];
+        for line in result {
+            assert_eq!(rx.recv().unwrap(), line);
+        }
     }
 
     #[test]

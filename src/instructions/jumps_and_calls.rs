@@ -82,14 +82,14 @@ impl LoadInstruction for TestSet {
 
 impl InstructionOps for TestSet {
     fn exec(&self, context: &mut Context) {
-        let eq = {
+        let jump = {
             let value = &context.stack[self.value].as_type();
             value.truethy() != self.constant
         };
-        if eq {
-            context.stack[self.reg] = context.stack[self.value].as_type().into();
-        } else {
+        if jump {
             context.ci_mut().pc += 1;
+        } else {
+            context.stack[self.reg] = context.stack[self.value].as_type().into();
         }
     }
 }
