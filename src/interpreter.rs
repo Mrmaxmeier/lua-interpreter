@@ -317,7 +317,7 @@ mod tests {
         let (mut interpreter, rx) = interpreter_from_bytes(include_bytes!("../fixtures/closures"));
         interpreter.run_debug();
         assert_eq!(rx.recv().unwrap(), "making add(2)");
-        assert_eq!(rx.recv().unwrap(), "add2(5) =");
+        assert_eq!(rx.recv().unwrap(), "add2(5) = ");
         assert_eq!(rx.recv().unwrap(), "7");
     }
 

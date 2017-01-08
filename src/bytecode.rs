@@ -135,7 +135,7 @@ mod tests {
         s.lines()
             .skip(1)
             .take(lines - 2)
-            .map(|s| re.replace_all(s, "\t"))
+            .map(|s| re.replace_all(s, "\t").into_owned())
             .collect()
     }
 
