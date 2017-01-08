@@ -108,7 +108,7 @@ impl Hash for Function {
 impl fmt::Debug for Function {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Function::Lua(ref lua_func) => write!(f, "{:?}", lua_func),
+            Function::Lua(_) => write!(f, "Function::Lua(...)"),
             Function::Native(_) => write!(f, "Function::Native(...)"),
         }
     }
