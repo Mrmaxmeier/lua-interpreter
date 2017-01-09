@@ -24,9 +24,6 @@ fn main() {
                           .arg(Arg::with_name("debug")
                                .short("d")
                                .help("Runs and displays debug info"))
-                          .arg(Arg::with_name("no-debug")
-                               .short("n")
-                               .help("Runs without displaying debug info"))
                           .arg(Arg::with_name("prettyprint")
                                .short("p")
                                .help("Prettyprints bytecode data"))
@@ -34,21 +31,6 @@ fn main() {
 
     let mut file_path = matches.value_of("INPUT").unwrap();
     println!("Using input file: {}", file_path);
-
-    match matches.occurrences_of("v") {
-        0 => println!("No verbose info"),
-        1 => println!("Some verbose info"),
-        2 => println!("Tons of verbose info"),
-        3 | _ => println!("Don't be crazy"),
-    }
-
-    if let Some(matches) = matches.subcommand_matches("test") {
-        if matches.is_present("debug") {
-            println!("Printing debug info...");
-        } else {
-            println!("Printing normally...");
-        }
-    }
 
     if file_path.ends_with(".lua") {
         let compile_output = Command::new("luac")
@@ -69,7 +51,7 @@ fn main() {
     if matches.is_present("prettyprint") {
         let mut stream = Cursor::new(Vec::new());
         bytecode.pretty_print(&mut stream).unwrap();
-        let pprint_result: String = String::from_utf8(stream.into_inner()).unwrap();
+        let pprint_result = String::from_utf8(stream.into_inner()).unwrap();
         println!("{}", pprint_result);
     }
 
@@ -77,8 +59,7 @@ fn main() {
 
     if matches.is_present("debug") {
         interpreter.run_debug();
-    }
-    if matches.is_present("no-debug") {
+    } else if !matches.is_present("prettyprint") {
         interpreter.run();
     }
 }
