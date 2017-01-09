@@ -320,7 +320,7 @@ mod tests {
     fn fib_recursive() {
         let (mut interpreter, rx) = interpreter_from_bytes(include_bytes!("../fixtures/fib"));
         interpreter.run_debug();
-        let values = vec![1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987];
+        let values = vec![1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987];
         for val in &values {
             assert_eq!(rx.recv().unwrap(), format!("{}", val));
         }

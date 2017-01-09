@@ -14,6 +14,6 @@ local function fib(n)
     return res
 end
 
-for i = 1, 15 do
+for i = 0, 15 do
     print(fib(i));
 end
