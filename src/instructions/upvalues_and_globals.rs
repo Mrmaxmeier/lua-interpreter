@@ -87,7 +87,7 @@ impl InstructionOps for SetTabUp {
         let upval = context.ci().upvalues[self.upval].clone();
         let key = self.key.get_from(context);
         let value = self.value.get_from(context);
-        let table = as_type_variant!(upval.value(&context), Type::Table);
+        let table = as_type_variant!(upval.value(context), Type::Table);
         table.lock().insert(key, value);
     }
 }

@@ -16,7 +16,7 @@ impl LuaTable {
         Self::default()
     }
 
-    pub fn lock<'a>(&'a self) -> MutexGuard<'a, LuaTableRaw> {
+    pub fn lock(&self) -> MutexGuard<LuaTableRaw> {
         self.0.lock()
     }
 }
